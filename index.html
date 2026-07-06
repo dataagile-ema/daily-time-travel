@@ -1379,7 +1379,10 @@ function dayNum(off){
 }
 function savedResultFor(off){
   if (off !== 0) return null;
-  return ((loadStore().days) || {})[dateKey(dateForOffset(0))] || null;
+  const r = ((loadStore().days) || {})[dateKey(dateForOffset(0))] || null;
+  // a result belongs to a specific journey — if today's journey has changed
+  // (e.g. redeploy with a new spec), a stale result must not be restored
+  return (r && r.sig === journeySig(J)) ? r : null;
 }
 function getDayStreak(){
   const days = (loadStore().days) || {};
@@ -1680,7 +1683,7 @@ function win(){
   if (dayOffset === 0 && !window.TT_PREVIEW_MODE && !savedResultFor(0)){
     const st = loadStore(); st.days = st.days || {};
     st.days[dateKey(dateForOffset(0))] = {
-      h: steps, w: wrongs, par: optimal,
+      h: steps, w: wrongs, par: optimal, sig: journeySig(J),
       route: history.map(h => [h.year, h.text, h.correct ? 1 : 0])
     };
     saveStore(st);
