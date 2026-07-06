@@ -436,6 +436,14 @@ header h1::after{
 @keyframes fall{to{transform:translate(22vw,110vh) rotate(16deg);opacity:.1}}
 
 /* ---- Daily-game additions ---- */
+.result-screen{display:none}
+.result-screen.show{display:block;animation:fadeIn .5s ease both}
+.panel-inline{width:100%;max-width:none;max-height:none;overflow:visible;
+  background:transparent;border:none;outline:none;box-shadow:none;
+  padding:14px 2px calc(10px + env(safe-area-inset-bottom));
+  transform:none;transition:none}
+.panel-inline .route{max-height:none;overflow:visible}
+
 .dstats{display:flex;justify-content:center;gap:26px;margin:14px 0 2px;padding-top:12px;border-top:1px dashed var(--border)}
 .dstats .box{text-align:center}
 .dstats .num{font-family:var(--mono);font-weight:700;font-size:1.25rem;line-height:1.2;color:var(--ink)}
@@ -550,12 +558,10 @@ header h1{font-size:1.92rem}
       </div>
     </div>
   </div>
-</div>
 
-<button class="next-fab" id="nextFab">Next →</button>
-
-<div class="overlay" id="overlay">
-  <div class="panel">
+<!-- Slutskärmen är en egen skärm, inte en modal — resultatet ÄR destinationen -->
+<section class="result-screen" id="resultScreen">
+  <div class="panel panel-inline">
     <h2>You've arrived!</h2>
     <div class="goal-name" id="goalName"></div>
     <div class="big-year" id="finalYear"></div>
@@ -579,7 +585,12 @@ header h1{font-size:1.92rem}
       <a href="#" id="fbLink">Feedback?</a>
     </div>
   </div>
+</section>
 </div>
+
+<button class="next-fab" id="nextFab">Next →</button>
+
+<div class="overlay" id="overlay" style="display:none"></div>
 
 <div class="overlay" id="fbOverlay">
   <div class="panel" style="text-align:left">
@@ -1472,7 +1483,8 @@ function newGame(offset, opts){
     dateForOffset(dayOffset).toLocaleDateString("en-US", { month: "long", day: "numeric" });
   $("jbStart").textContent = S.start[1] + " (" + fmtYear(S.start[0]) + ")";
   $("jbEnd").textContent = fmtYear(S.goal[0]);
-  $("overlay").classList.remove("show");
+  $("resultScreen").classList.remove("show");
+  $("boardWrap").style.display = "";
   document.querySelectorAll(".confetti").forEach(c => c.remove());
   connSvg.innerHTML = "";
   var _nf = document.getElementById("nextFab"); if (_nf) _nf.classList.remove("show");
@@ -1674,7 +1686,10 @@ function showResultPanel(restored){
   renderDailyStats();
   startCountdown();
   $("btnNextDay").style.display = window.TT_TEST_MODE ? "" : "none";
-  $("overlay").classList.add("show");
+  $("boardWrap").style.display = "none";
+  $("nextFab").classList.remove("show");
+  $("resultScreen").classList.add("show");
+  window.scrollTo(0, 0);
   if (restored) return; // no confetti when just re-opening the page
   for (let i = 0; i < 26; i++){
     const c = document.createElement("div");
