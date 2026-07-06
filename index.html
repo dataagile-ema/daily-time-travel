@@ -599,9 +599,7 @@ header h1{font-size:1.92rem}
 /* =========================================================
    SPELMOTOR — identisk logik med v1/v2/v6, oförändrad.
    ========================================================= */
-const SPAN_MIN = 7, SPAN_MAX = 9;
-const TRAPS_BELOW = 6;
-const TARGET_OPTIMAL = 3;
+const PAR = 3;
 const THIS_YEAR = 2026;
 
 const EVENTS = [
@@ -734,8 +732,8 @@ const EVENTS = [
   [1618, "The Thirty Years' War begins"],
   [1620, "The Mayflower arrives in America"],
   [1628, "Sweden's warship Vasa sinks on her maiden voyage"],
-  [1636, "Harvard College is founded"],
   [1633, "Galileo is condemned by the Inquisition"],
+  [1636, "Harvard College is founded"],
   [1637, "Descartes publishes his Discourse on the Method"],
   [1642, "Rembrandt paints The Night Watch"],
   [1648, "The Peace of Westphalia"],
@@ -770,8 +768,8 @@ const EVENTS = [
   [1801, "Thomas Jefferson becomes US president"],
   [1804, "Napoleon crowns himself emperor"],
   [1805, "The Battle of Trafalgar"],
-  [1808, "Beethoven's 5th Symphony premieres"],
   [1807, "Britain abolishes the slave trade"],
+  [1808, "Beethoven's 5th Symphony premieres"],
   [1812, "Napoleon invades Russia"],
   [1814, "The Congress of Vienna begins"],
   [1815, "Napoleon is defeated at Waterloo"],
@@ -902,105 +900,77 @@ const EVENTS = [
 const fmtYear = y => y < 0 ? Math.abs(y).toLocaleString("en-US") + " BC" : (y < 1000 ? "AD " + y : "" + y);
 const fmtYearLong = fmtYear;
 
+/* Soft difficulty guard: the two cards in a question should sit comfortably
+   apart in time, so general era feel is always a viable way to answer. The
+   bar scales with how long ago we are (log-ish time perception). */
+function minGap(y){
+  const ago = Math.max(1, THIS_YEAR - y);
+  return Math.min(60, Math.max(4, Math.round(ago * 0.05)));
+}
+
 function rndNext(st){
   st.a |= 0; st.a = st.a + 0x6D2B79F5 | 0;
   let t = Math.imul(st.a ^ st.a >>> 15, 1 | st.a);
   t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
   return ((t ^ t >>> 14) >>> 0) / 4294967296;
 }
-function pickR(list, rng){ return list[Math.floor(rndNext(rng) * list.length)]; }
 function hashStr(str){
   let h = 2166136261 >>> 0;
   for (let i = 0; i < str.length; i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
   return h >>> 0;
 }
 
-function makeState(seed){
-  const rng = { a: seed };
-  const N = EVENTS.length;
-  const span = SPAN_MIN + Math.floor(rndNext(rng) * (SPAN_MAX - SPAN_MIN + 1));
-  const i = TRAPS_BELOW + Math.floor(rndNext(rng) * (N - span - TRAPS_BELOW));
-  const j = i + span;
-  return {
-    rng,
-    start: EVENTS[i],
-    goal:  EVENTS[j],
-    pool:  EVENTS.slice(i - TRAPS_BELOW, i).concat(EVENTS.slice(i + 1, j + 1)),
-    pos:   EVENTS[i][0],
-    used:  [],
-    dead:  [],
-    shown: []
-  };
-}
-/* Soft difficulty guard: the two cards should sit comfortably apart in time.
-   The bar scales with how long ago we are (log-ish time perception) — a
-   4-year gap in the 1990s reads like a 60-year gap in antiquity. */
-function minGap(pos){
-  const ago = Math.max(1, THIS_YEAR - pos);
-  return Math.min(60, Math.max(4, Math.round(ago * 0.05)));
-}
-function drawPair(s){
-  const sortF = l => l.sort((a,b) => a[0]-b[0]), sortP = l => l.sort((a,b) => b[0]-a[0]);
-  const fresh = e => !s.shown.includes(e);
+/* =========================================================
+   JOURNEY GRAPH — a journey is exactly 9 events in strict
+   chronological order, with fixed roles:
 
-  const futsAll = sortF(s.pool.filter(e => e[0] > s.pos));
-  if (!futsAll.length) return null;
-  let futs = futsAll.filter(fresh);
-  if (!futs.length) futs = futsAll;
+     [T2, T1, B1, S0, B2, C1, B3, C2, GOAL]
 
-  let pastsAll = sortP(s.pool.filter(e => e[0] < s.pos));
-  if (!pastsAll.length) pastsAll = sortP(s.used.filter(e => e[0] < s.pos));
-  let pasts = pastsAll.filter(fresh);
-  if (!pasts.length) pasts = pastsAll;
+   Spine: S0 → C1 → C2 → GOAL, so par is 3 by construction.
+   Every node carries ONE fixed question [later/correct, earlier/wrong]:
 
-  const fCand = futs.slice(0, 4), pCand = pasts.slice(0, 3);
-  if (pCand.length){
-    // all future×past pairings; prefer the ones with a comfortable year gap
-    const combos = [];
-    fCand.forEach(a => pCand.forEach(b => combos.push([a, b])));
-    const g = minGap(s.pos);
-    let ok = combos.filter(c => c[0][0] - c[1][0] >= g);
-    if (!ok.length){
-      combos.sort((x, y) => (y[0][0] - y[1][0]) - (x[0][0] - x[1][0]));
-      ok = [combos[0]]; // nothing clears the bar — take the widest pairing
-    }
-    const c = pickR(ok, s.rng);
-    return { a: c[0], b: c[1] };
-  }
-  // no past candidates at all — fall back to two future events
-  const a = pickR(fCand, s.rng);
-  let rest = fCand.filter(e => e !== a);
-  if (rest.length){
-    const g = minGap(s.pos);
-    const wide = rest.filter(e => Math.abs(e[0] - a[0]) >= g);
-    if (wide.length) rest = wide;
-    else rest = [rest.reduce((m,e) => Math.abs(e[0]-a[0]) > Math.abs(m[0]-a[0]) ? e : m)];
-    return { a, b: pickR(rest, s.rng) };
-  }
-  const others = EVENTS.filter(e => e !== a && e[0] !== s.pos && !s.dead.includes(e))
-                       .sort((x,y) => Math.abs(x[0]-s.pos) - Math.abs(y[0]-s.pos));
-  return others.length ? { a, b: others[0] } : null;
+     S0:[C1,B1]  C1:[C2,B2]  C2:[GOAL,B3]     (the spine)
+     B2:[C2,B1]  B3:[GOAL,B1]                 (wrong turns rejoin one step up)
+     B1:[C1,T1]  T1:[C1,T2]  T2:[C1,B1]       (the trap chain below the start;
+                                                T2 is the floor — both options
+                                                point forward)
+
+   Fully deterministic: every player meets exactly the same questions,
+   mistakes included. Wrong options you have already picked are greyed
+   out on revisit, which also guarantees the game always terminates.
+   ========================================================= */
+function buildJourney(evs, seed){
+  const [T2, T1, B1, S0, B2, C1, B3, C2, G] = evs;
+  const pairs = new Map([
+    [S0, [C1, B1]], [C1, [C2, B2]], [C2, [G, B3]],
+    [B2, [C2, B1]], [B3, [G, B1]],
+    [B1, [C1, T1]], [T1, [C1, T2]], [T2, [C1, B1]]
+  ]);
+  return { seed: seed || 0, events: evs, start: S0, goal: G, pairs };
 }
-function applyChoice(s, pair, ev){
-  s.pool = s.pool.filter(e => e !== ev);
-  if (s.used.includes(ev)){
-    s.used = s.used.filter(e => e !== ev);
-    s.dead.push(ev);
-  } else s.used.push(ev);
-  s.shown.push(pair.a, pair.b);
-  s.pos = ev[0];
+
+function genJourney(seed){
+  const rng = { a: seed }, N = EVENTS.length;
+  const i  = 3 + Math.floor(rndNext(rng) * (N - 12));          // S0
+  const a  = i + 2 + Math.floor(rndNext(rng) * 2);             // C1
+  const b  = a + 2 + Math.floor(rndNext(rng) * 2);             // C2
+  const c  = b + 1 + Math.floor(rndNext(rng) * 2);             // GOAL
+  const b2 = i + 1 + Math.floor(rndNext(rng) * (a - i - 1));   // in (S0, C1)
+  const b3 = a + 1 + Math.floor(rndNext(rng) * (b - a - 1));   // in (C1, C2)
+  return buildJourney([EVENTS[i-3], EVENTS[i-2], EVENTS[i-1], EVENTS[i],
+                       EVENTS[b2], EVENTS[a], EVENTS[b3], EVENTS[b], EVENTS[c]], seed);
 }
-function playOptimal(seed){
-  const s = makeState(seed);
-  let hops = 0;
-  while (s.pos < s.goal[0] && hops < 80){
-    const p = drawPair(s);
-    if (!p) break;
-    applyChoice(s, p, p.a[0] > p.b[0] ? p.a : p.b);
-    hops++;
-  }
-  return hops;
+
+/* every question must be answerable on era feel alone: gap >= minGap */
+function journeyQuality(j){
+  let ok = true;
+  j.pairs.forEach((p, node) => {
+    if (p[0][0] - p[1][0] < minGap(node[0])) ok = false;
+  });
+  return ok;
 }
+function journeySig(j){ return j.start[0] + ">" + j.goal[0]; }
+function startIdx(j){ return EVENTS.indexOf(j.start); }
 
 function dateForOffset(off){
   const d = new Date();
@@ -1008,30 +978,45 @@ function dateForOffset(off){
   return d;
 }
 function dateKey(d){ return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
-function journeySig(seed){ const s = makeState(seed); return s.start[0] + ">" + s.goal[0]; }
-function startIdx(seed){ const s = makeState(seed); return EVENTS.indexOf(s.start); }
-function seedForOffset(off, depth){
-  depth = depth || 0;
-  // yesterday's journey: never the same signature, and start in a clearly
-  // different part of history (>= 30 index positions away) — era variety
-  const prevSeed = depth > 2 ? null : seedForOffset(off - 1, depth + 1);
-  const prevSig = prevSeed === null ? null : journeySig(prevSeed);
-  const prevIdx = prevSeed === null ? null : startIdx(prevSeed);
-  let fallback = null, seed;
-  for (let salt = 0; salt < 60; salt++){
-    seed = hashStr("timetravel-" + dateKey(dateForOffset(off)) + (salt ? "-" + salt : ""));
-    const okSig = journeySig(seed) !== prevSig &&
-                  (prevIdx === null || Math.abs(startIdx(seed) - prevIdx) >= 30);
-    if (okSig && playOptimal(seed) === TARGET_OPTIMAL) return seed;
-    if (okSig && fallback === null) fallback = seed;
+
+/* =========================================================
+   HAND-DESIGNED JOURNEYS — optional overrides, keyed by date.
+   A spec is simply 9 events, OLDEST → NEWEST; roles follow from
+   the order (see the diagram above). If a date has no spec the
+   journey is generated from the seed as usual.
+   Example:
+   "2026-7-31": [
+     [-3500,"The wheel is invented in Mesopotamia"], … 8 more …
+   ]
+   ========================================================= */
+const SPEC_JOURNEYS = {
+};
+
+function journeyForOffset(off, depth){
+  const key = dateKey(dateForOffset(off));
+  if (SPEC_JOURNEYS[key]){
+    const evs = SPEC_JOURNEYS[key].slice().sort((x, y) => x[0] - y[0]);
+    return buildJourney(evs, hashStr("spec-" + key));
   }
-  return fallback !== null ? fallback : seed;
+  depth = depth || 0;
+  // era variety: never yesterday's signature, and start >= 30 index
+  // positions away from yesterday's start
+  const prev = depth > 2 ? null : journeyForOffset(off - 1, depth + 1);
+  let fallback = null, j;
+  for (let salt = 0; salt < 60; salt++){
+    j = genJourney(hashStr("timetravel-" + key + (salt ? "-" + salt : "")));
+    const okVar = !prev || (journeySig(j) !== journeySig(prev) &&
+                  (startIdx(prev) < 0 || Math.abs(startIdx(j) - startIdx(prev)) >= 30));
+    if (okVar && journeyQuality(j)) return j;
+    if (okVar && fallback === null) fallback = j;
+  }
+  return fallback || j;
 }
 
 /* =========================================================
    UI-LAGER — helt omgjort för v7.
    ========================================================= */
-let S, pair, steps, wrongs, streak, optimal, history, busy, AXIS_MIN, AXIS_MAX, dayOffset = 0, visitedLabYs = [];
+let J, S, cur, wrongPicked, pair, steps, wrongs, streak, optimal, history, busy, AXIS_MIN, AXIS_MAX, dayOffset = 0, visitedLabYs = [];
 let slotEls = new Map(), slotLabEls = new Map();
 const $ = id => document.getElementById(id);
 const cardsEl = $("cards"), fbEl = $("feedback"), axisEl = $("axis"), boardEl = $("boardWrap"), connSvg = $("connSvg");
@@ -1091,7 +1076,7 @@ function buildAxis(){
   axisEl.querySelectorAll(".axis-tick,.axis-tick-lab,.goal-pin,.goal-lab,.visited,.visited-lab,.slot-wrap,.slot-lab")
         .forEach(n => n.remove());
   visitedLabYs = [];
-  const lo = Math.min(...S.pool.map(e => e[0]), S.pos);
+  const lo = J.events[0][0];
   const hi = S.goal[0];
   const pad = Math.max(4, (hi - lo) * 0.07);
   AXIS_MIN = lo - pad; AXIS_MAX = hi + pad;
@@ -1233,15 +1218,11 @@ function showTravel(fromPos, toPos, forward, card){
    staten och spelar optimalt). Efter ett bra kliv minskar det, efter ett
    felkliv ökar det. */
 function remainingOptimal(){
-  const s = { rng:{a:S.rng.a}, start:S.start, goal:S.goal,
-              pool:S.pool.slice(), pos:S.pos,
-              used:S.used.slice(), dead:S.dead.slice(), shown:S.shown.slice() };
-  let hops = 0;
-  while (s.pos < s.goal[0] && hops < 80){
-    const p = drawPair(s);
+  let node = cur, hops = 0;
+  while (node !== J.goal && hops < 20){
+    const p = J.pairs.get(node);
     if (!p) break;
-    applyChoice(s, p, p.a[0] > p.b[0] ? p.a : p.b);
-    hops++;
+    node = p[0]; hops++;
   }
   return hops;
 }
@@ -1471,9 +1452,11 @@ function sendFeedback(){
 
 function newGame(offset, opts){
   dayOffset = offset === undefined ? dayOffset : offset;
-  const seed = seedForOffset(dayOffset);
-  optimal = playOptimal(seed);
-  S = makeState(seed);
+  J = journeyForOffset(dayOffset);
+  optimal = PAR;
+  S = { pos: J.start[0], start: J.start, goal: J.goal };
+  cur = J.start;
+  wrongPicked = new Map();
   curEvent = S.start;
   steps = 0; wrongs = 0; streak = 0; history = []; busy = false;
   $("steps").textContent = 0; $("wrongs").textContent = 0; $("streak").textContent = 0;
@@ -1504,7 +1487,7 @@ function restoreFinished(saved){
   steps = saved.h; wrongs = saved.w;
   history = saved.route.map(r => ({ year: r[0], text: r[1], correct: !!r[2], forward: true }));
   $("steps").textContent = steps; $("wrongs").textContent = wrongs;
-  S.pos = S.goal[0]; curEvent = S.goal;
+  S.pos = S.goal[0]; cur = J.goal; curEvent = S.goal;
   setYearNow(S.pos);
   moveMe(false);
   fbEl.innerHTML = "You've arrived!" + posHTML();
@@ -1513,17 +1496,21 @@ function restoreFinished(saved){
 }
 
 function nextRound(){
-  pair = drawPair(S);
-  if (!pair){
+  const p = cur === J.goal ? null : J.pairs.get(cur);
+  if (!p){
     S.pos = S.goal[0];
     curEvent = S.goal;
     moveMe(true);
     win();
     return;
   }
+  pair = { a: p[0], b: p[1] };
   showCandidates();
   // centrum-raden rensas inte — senaste instruktionen står kvar tills nästa val
-  const order = Math.random() < .5 ? [pair.a, pair.b] : [pair.b, pair.a];
+  // kortordningen är seedad per position — samma för alla spelare
+  const flip = (hashStr(J.seed + "@" + cur[0]) & 1) === 1;
+  const order = flip ? [pair.b, pair.a] : [pair.a, pair.b];
+  const tried = wrongPicked.get(cur);
   cardsEl.className = "cards";
   cardsEl.innerHTML = "";
   order.forEach((ev, idx) => {
@@ -1535,7 +1522,14 @@ function nextRound(){
       '<span class="reveal-row"><span class="year">' + fmtYear(ev[0]) + '</span></span>' +
       '<span class="badge"></span>';
     b._year = ev[0];
-    b.onclick = () => choose(ev);
+    if (tried && tried.has(ev)){
+      // redan provat felval: gråat, klickbart aldrig igen
+      b.classList.add("back", "dim", "revealed");
+      b.disabled = true;
+      b.querySelector(".badge").textContent = "\u2715";
+    } else {
+      b.onclick = () => choose(ev);
+    }
     cardsEl.appendChild(b);
   });
 }
@@ -1546,11 +1540,16 @@ function choose(ev){
   cardsEl.classList.add("locked");
   const other = ev === pair.a ? pair.b : pair.a;
   const oldPos = S.pos;
-  const forward = ev[0] > oldPos;        // direction we travel
-  const correct = ev[0] > other[0];      // the factually right answer
+  const forward = ev[0] > oldPos;   // direction we travel
+  const correct = ev === pair.a;    // pair.a is always the later event
   if (!window._ttStep1Sent){ window._ttStep1Sent = true; trackEvent("tt_step1", "TT first hop"); }
   const chosenSlot = slotEls.get(ev), otherSlot = slotEls.get(other);
-  applyChoice(S, pair, ev);
+  if (!correct){
+    if (!wrongPicked.has(cur)) wrongPicked.set(cur, new Set());
+    wrongPicked.get(cur).add(ev);
+  }
+  cur = ev;
+  S.pos = ev[0];
   steps++;
   if (correct){ streak++; } else { wrongs++; streak = 0; }
   $("steps").textContent = steps; $("wrongs").textContent = wrongs; $("streak").textContent = streak;
