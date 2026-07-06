@@ -1,0 +1,1709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Daily Time Travel — hop through history, one day at a time</title>
+<meta name="description" content="A free daily history game. Travel from one event to another by picking which happened most recently — reach the goal year in as few hops as you can.">
+<link rel="canonical" href="https://daily-time-travel.netlify.app/">
+<meta property="og:title" content="Daily Time Travel">
+<meta property="og:description" content="Hop through history! Pick which event happened most recently and reach the goal year in as few hops as you can. A new journey every day.">
+<meta property="og:image" content="https://daily-time-travel.netlify.app/og-image.png">
+<meta property="og:url" content="https://daily-time-travel.netlify.app/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#e9dec4">
+<link rel="icon" type="image/png" href="favicon-32.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&family=Karla:wght@400;500;600;700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   TIDSRESAN v19 — VALPIL KORT → PLATS (f.d. v18_valpil)
+   Som v18, men vid val ritas en linje från det valda kortet
+   till platsen på axeln dit resan går (som i tidiga versioner)
+   — valet styr vart vi åker. Linjen tonar ut efter resan.
+   Centrum-texten bär ALLTID plakettens bläckblå färg (den hör
+   ihop med spelaren) och innehåller alltid händelsen + året
+   där spelaren står just nu. Statusen ("Du är här!", "Rätt
+   håll! 2 steg kvar.") står ovanför positionsraden.
+   Bas: v18 — SPELARENS CENTRUM
+   Som v17, men feedback-raden är spelarens fasta centrum: där
+   står ALLTID en instruktion (grön/röd), och "Du är här!" bor
+   där vid spelstart — med en bläckkurva som ritas från texten
+   till plaketten på axeln (samma formspråk som svarslinjerna).
+   Frågan står alltid direkt under. Marginalnoten är borttagen.
+   Fixar från Niklas test: kompaktare plakett som ryms i rännan
+   före korten (f.Kr tappar timglaset på mobil), större text i
+   resebandet, kandidatetiketter viker även för "Du är här!"-
+   noten, och en dator-läge (>=700px) med bredare spelyta.
+   ---------------------------------------------------------
+   Bas: v16_right_space — OMDISPONERAD YTA
+   Som v16_right, men reseband + räknare bor i spelkolumnen
+   (den tomma ytan runt knapparna) i stället för i sidhuvudet.
+   Tidslinjen sträcker sig därmed nästan hela skärmhöjden och
+   får fler skalstreck; målskylten sitter som vägvisare på
+   linjens topp.
+   Som v16, men plaketten ligger alltid till höger om axeln med
+   pilen pekande mot sin punkt — ingen dodge-logik behövs, och
+   kandidatplatserna på axeln är aldrig skymda.
+   Som v15_year, men med en lekfull handskriven "Du är här!"-
+   marginalnot med svängd pil som gungar ovanför plaketten,
+   samt större timglas i plaketten.
+   Bygger på v15. Det stora "Du befinner dig i"-fönstret är
+   borttaget: resenärsplaketten på tidsaxeln bär i stället
+   det aktuella årtalet, och året rullar i plaketten medan
+   symbolen reser. Ett ställe för "var är jag" — ingen
+   duplicering.
+   ---------------------------------------------------------
+   Ursprunglig bas: v12 — NY DESIGN 1 · MOBIL
+   Samma spelmotor som v12 (helt orörd). Visuell riktning
+   "Kartografens journal" behållen, men omproportionerad
+   för telefon: större text, större tryckytor, tydligare
+   tidsaxel-rail och ett stort, lugnt årtalsfönster.
+   ========================================================= */
+:root{
+  --bg:#e9dec4;
+  --paper:#f5eeda;
+  --paper-2:#efe6cd;
+  --ink:#241c10;
+  --text:#241c10;
+  --text-dim:#5f4f37;
+  --text-faint:#8a7856;
+  --accent:#1c5a66;
+  --accent-dim:#123f47;
+  --accent-glow:rgba(28,90,102,.16);
+  --accent-glow-strong:rgba(28,90,102,.34);
+  --gilt:#976b12;
+  --gilt-glow:rgba(151,107,18,.5);
+  --seal:#9c3a28;
+  --spark:#976b12;
+  --spark-glow:rgba(151,107,18,.5);
+  --correct:#3c6f44;
+  --correct-dim:#2c5433;
+  --correct-soft:rgba(60,111,68,.14);
+  --correct-glow:rgba(60,111,68,.32);
+  --wrong:#a83c24;
+  --wrong-dim:#832e1a;
+  --wrong-soft:rgba(168,60,36,.12);
+  --wrong-glow:rgba(168,60,36,.3);
+  --border:rgba(36,28,16,.16);
+  --border-hover:rgba(36,28,16,.34);
+  --border-accent:rgba(28,90,102,.5);
+  --display:'Fraunces',Georgia,serif;
+  --ui:'Karla',system-ui,sans-serif;
+  --mono:'Courier Prime',ui-monospace,monospace;
+  --shadow:3px 3px 0 rgba(36,28,16,.14);
+  --radius:8px;
+  --radius-lg:12px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:var(--ui);color:var(--text);background:var(--bg);
+  min-height:100dvh;display:flex;justify-content:center;
+  -webkit-text-size-adjust:100%;text-rendering:optimizeLegibility;
+}
+body{
+  background:
+    radial-gradient(ellipse 150% 120% at 50% 45%, transparent 52%, rgba(88,66,35,.22) 100%),
+    radial-gradient(ellipse 120% 80% at 50% 0%, rgba(255,250,235,.7) 0%, transparent 60%),
+    repeating-linear-gradient(0deg, transparent 0 33px, rgba(36,28,16,.045) 33px 34px),
+    repeating-linear-gradient(90deg, transparent 0 33px, rgba(36,28,16,.045) 33px 34px),
+    var(--bg);
+  transition:background .5s;
+}
+body::after{
+  content:'';position:fixed;inset:0;opacity:.05;pointer-events:none;z-index:40;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-size:256px 256px;
+}
+#app.shake{animation:shake .4s}
+@keyframes shake{0%,100%{transform:none}20%{transform:translateX(-5px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+
+.ember{position:fixed;bottom:-6px;border-radius:50%;background:var(--gilt);pointer-events:none;z-index:0;
+  opacity:0;animation:emberRise linear infinite}
+@keyframes emberRise{
+  0%{opacity:0;transform:translateY(0) scale(.6)}
+  8%{opacity:.32}
+  92%{opacity:.1}
+  100%{opacity:0;transform:translateY(-100vh) scale(1.1)}
+}
+
+#app{width:100%;max-width:440px;min-height:100dvh;
+  padding:calc(14px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;position:relative;z-index:2}
+.screen-fade{animation:screenIn .45s ease both}
+@keyframes screenIn{from{opacity:0}to{opacity:1}}
+.fade-in{animation:fadeIn .5s ease both}
+@keyframes fadeIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+.fade-in-d1{animation:fadeIn .5s ease .08s both}
+.fade-in-d2{animation:fadeIn .5s ease .16s both}
+.fade-in-d3{animation:fadeIn .5s ease .24s both}
+
+header{text-align:center;margin-bottom:8px}
+header h1{
+  font-family:var(--display);font-style:italic;font-weight:800;font-size:2.15rem;letter-spacing:-.01em;
+  color:var(--ink);line-height:1;
+  font-variation-settings:'opsz' 90;
+}
+header h1::after{
+  content:'✦';display:block;font-style:normal;font-size:.55rem;color:var(--gilt);
+  letter-spacing:.6em;margin-top:4px;opacity:.85;
+}
+.day-lab{font-size:.68rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--seal);margin-top:6px;font-family:var(--mono)}
+
+/* Reseband: två fält, tydliga, tillåts brytas till två rader i stället
+   för att kapas — viktigare med läsbarhet än snygg avklippning på mobil */
+/* Mobil: staplat band — händelsetexten får hela bredden, målraden under */
+.journey-banner{display:flex;flex-direction:column;gap:7px;
+  padding:10px 13px;background:var(--paper);border:1.5px dashed var(--border-hover);border-radius:var(--radius);
+  box-shadow:var(--shadow)}
+.journey-banner .jb-side{flex:1;min-width:0}
+.journey-banner .jb-start{display:flex;flex-direction:column;justify-content:center}
+.journey-banner .jb-label{font-size:.6rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint);font-family:var(--mono);margin-bottom:3px}
+.journey-banner .jb-event{font-size:.92rem;font-weight:600;color:var(--ink);line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.journey-banner .jb-arrow{display:none;align-items:center;color:var(--seal);opacity:.85;flex-shrink:0;font-size:1.05rem}
+/* Målet är ett ÅRTAL att nå — inte en namngiven händelse (annars avslöjas
+   sista svaret gratis). Sätts som ett tydligt förseglat årtalsmärke. */
+.journey-banner .jb-end{flex:0 0 auto;display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:8px;text-align:right}
+.journey-banner .jb-end .jb-label{margin-bottom:0}
+.journey-banner .jb-end .jb-label{color:var(--seal)}
+.journey-banner .jb-year{font-family:var(--mono);font-weight:700;font-size:1.18rem;line-height:1;color:var(--seal);letter-spacing:.01em;white-space:nowrap;
+  padding:5px 10px;border:1.5px solid rgba(156,58,40,.5);border-radius:7px;
+  background:rgba(156,58,40,.08);box-shadow:1px 1px 0 rgba(36,28,16,.13),inset 0 1px 0 rgba(255,235,220,.35)}
+.meta{display:flex;justify-content:center;flex-wrap:wrap;gap:5px 12px;font-size:.7rem;color:var(--text-dim);margin-top:9px;font-family:var(--mono)}
+.meta b{color:var(--ink);font-weight:700}
+.meta .streak-chip b{color:var(--gilt)}
+.meta .streak-chip.pop{animation:chipPop .4s}
+@keyframes chipPop{40%{transform:scale(1.3)}}
+
+.board{position:relative;display:flex;gap:8px;flex:1;min-height:0;margin-top:6px}
+.connector-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:15;overflow:visible}
+.conn-path{fill:none;stroke-width:2.4;opacity:0;filter:drop-shadow(0 1px 1px rgba(36,28,16,.2))}
+.conn-path.correct{stroke:var(--correct);color:var(--correct)}
+.conn-path.wrong{stroke:var(--wrong);color:var(--wrong)}
+.conn-path.melink{stroke:var(--accent);color:var(--accent)}
+.conn-path.dim{stroke:var(--text-faint);color:var(--text-faint);opacity:0!important}
+.conn-path.show{opacity:.85;transition:opacity .35s ease}
+.conn-path.fade-out{opacity:0!important;transition:opacity .6s ease}
+
+/* ---- Vertikal tidsaxel = tydlig expeditionsrail i papperskanten ---- */
+.axis-col{position:relative;width:112px;flex:none;margin:24px 0 12px;
+  background:linear-gradient(90deg,rgba(245,238,218,.75) 0%,rgba(245,238,218,.35) 70%,transparent 100%);
+  border-radius:var(--radius) 0 0 var(--radius)}
+.axis-line{position:absolute;left:40px;top:0;bottom:0;width:2.5px;border-radius:2px;
+  background:repeating-linear-gradient(180deg,var(--ink) 0 7px,transparent 7px 14px);
+  opacity:.5;
+  transform-origin:bottom;animation:growLine .8s cubic-bezier(.3,.7,.3,1) both}
+@keyframes growLine{from{transform:scaleY(0)}}
+.axis-tick{position:absolute;left:33px;width:15px;height:1.5px;background:var(--border-hover);animation:fadeIn .5s .4s both}
+.axis-tick-lab{position:absolute;left:0;width:30px;text-align:right;transform:translateY(-50%);
+  font-family:var(--mono);font-size:.62rem;font-weight:700;color:var(--text-faint);line-height:1.15;animation:fadeIn .5s .5s both}
+
+/* Mål: rött vaxsigill på nålens topp */
+.goal-pin{position:absolute;left:41px;margin-top:-16px;z-index:3}
+.goal-pin::before{content:'';position:absolute;left:0;top:0;width:2px;height:16px;background:var(--seal);border-radius:1px}
+.goal-pin::after{content:'';position:absolute;left:-5px;top:-7px;width:13px;height:13px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#c05a41,var(--seal) 60%,#742a1b);
+  box-shadow:0 1px 3px rgba(36,28,16,.4),inset 0 1px 0 rgba(255,235,220,.35);
+  animation:pinBob 1.8s ease-in-out infinite}
+@keyframes pinBob{50%{transform:translateY(-2px)}}
+.goal-lab{position:absolute;left:41px;transform:translateX(max(-50%,-52px));margin-top:-38px;
+  font-family:var(--display);font-style:italic;font-size:.78rem;font-weight:700;color:var(--seal);
+  white-space:nowrap;z-index:7;background:var(--paper);border:1px solid rgba(156,58,40,.4);
+  padding:2px 9px 3px;border-radius:999px;box-shadow:1px 1px 0 rgba(36,28,16,.14)}
+
+/* v15_year — Resenären BÄR året: en bläckblå plakett centrerad på axeln
+   med timglas-siluett + aktuellt årtal. Året rullar i plaketten under
+   resan (tickYear skriver hit). Pulsringen säger "du är här". */
+.me{position:absolute;left:41px;height:34px;margin-top:-17px;z-index:6;
+  /* alltid till höger om axeln; pilen (::before) pekar mot punkten.
+     Kompakt nog att (för vanliga årtal) rymmas i rännan före korten */
+  --tx:10px;
+  transform:translateX(var(--tx));white-space:nowrap;
+  display:inline-flex;align-items:center;gap:6px;padding:0 11px 0 9px;border-radius:999px;
+  background:radial-gradient(ellipse at 35% 25%,#5b98a2,var(--accent) 55%,var(--accent-dim));
+  box-shadow:0 2px 5px rgba(36,28,16,.35),inset 0 1px 0 rgba(233,242,242,.5);
+  transition:top 1.15s cubic-bezier(.5,0,.3,1.05),transform .45s ease;}
+.me::before{content:'';position:absolute;right:100%;top:50%;margin-top:-6px;
+  border:6px solid transparent;border-right:7px solid var(--accent-dim);border-left:none}
+.me-icon{fill:#f5eeda;width:16px;height:16px;flex:none;opacity:.95}
+.me-year{font-family:var(--mono);font-weight:700;font-size:1.08rem;line-height:1;color:#f5eeda;
+  font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.me.long .me-year{font-size:.84rem}
+/* långa f.Kr-årtal: släpp timglaset så plaketten inte når in i korten */
+.me.long{gap:0;padding:0 10px}
+.me.long .me-icon{display:none}
+.me::after{content:'';position:absolute;inset:-6px;border-radius:999px;border:1.5px solid var(--accent);
+  animation:pulseRing 1.7s ease-out infinite}
+@keyframes pulseRing{0%{transform:scale(.78);opacity:.85}75%{transform:scale(1.16);opacity:0}100%{opacity:0}}
+.me.land{animation:landBounce .55s cubic-bezier(.34,1.56,.64,1)}
+@keyframes landBounce{0%{transform:translateX(var(--tx)) scale(.55)}55%{transform:translateX(var(--tx)) scale(1.12)}100%{transform:translateX(var(--tx)) scale(1)}}
+/* v14_g — resespår längs axeln + glödande symbol under resan + ankomstpuls */
+.travel{position:absolute;left:41px;width:6px;margin-left:-3px;border-radius:4px;z-index:5;pointer-events:none;opacity:.92}
+.travel.fwd{background:linear-gradient(180deg,var(--correct),rgba(60,111,68,.12));box-shadow:0 0 10px var(--correct-glow)}
+.travel.back{background:linear-gradient(180deg,rgba(168,60,36,.12),var(--wrong));box-shadow:0 0 10px var(--wrong-glow)}
+.me.mv-fwd{box-shadow:0 2px 5px rgba(36,28,16,.35),inset 0 1px 0 rgba(233,242,242,.5),0 0 0 4px var(--correct-glow),0 0 18px var(--correct)}
+.me.mv-back{box-shadow:0 2px 5px rgba(36,28,16,.35),inset 0 1px 0 rgba(233,242,242,.5),0 0 0 4px var(--wrong-glow),0 0 18px var(--wrong)}
+.arrive-ring{position:absolute;left:41px;width:38px;height:38px;margin:-19px 0 0 -19px;border-radius:50%;z-index:6;pointer-events:none;
+  border:2.5px solid var(--accent);transform:scale(.4);opacity:.9;animation:arriveRing .8s ease-out forwards}
+.arrive-ring.fwd{border-color:var(--correct)}
+.arrive-ring.back{border-color:var(--wrong)}
+@keyframes arriveRing{0%{transform:scale(.4);opacity:.9}100%{transform:scale(2.5);opacity:0}}
+/* v14_i — diskret synkad glöd vid framkomst: en mjuk, varm guldglöd svävar upp
+   och tonar bort SAMTIDIGT på spelarsymbolen och det valda kortet. Ingen
+   ljusstyrke-spik/blink — bara en stilla resonans som säger att de hör ihop. */
+.me.glint{animation:meGlow 1.2s ease-in-out}
+@keyframes meGlow{
+  0%,100%{box-shadow:0 2px 5px rgba(36,28,16,.35),inset 0 1px 0 rgba(233,242,242,.5)}
+  50%{box-shadow:0 2px 5px rgba(36,28,16,.35),inset 0 1px 0 rgba(233,242,242,.5),0 0 12px 3px rgba(210,172,88,.48)}}
+/* kortet får INGEN kant-glöd (det läste som en blink) utan en mjuk ljusstrimma
+   som sveper över kortet en gång — en stilla glimt, inte ett blink. */
+.card.glint::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:2;border-radius:inherit;
+  background:linear-gradient(105deg,transparent 38%,rgba(255,243,212,.5) 50%,transparent 62%);
+  transform:translateX(-115%);animation:cardShimmer 1.15s ease-in-out}
+@keyframes cardShimmer{to{transform:translateX(115%)}}
+/* v14_h — flytande Nästa-knapp (manuell fortsättning efter svar) */
+.next-fab{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));
+  transform:translate(-50%,18px);z-index:46;
+  display:inline-flex;align-items:center;gap:8px;
+  background:linear-gradient(180deg,#2a7d8c 0%,var(--accent) 55%,var(--accent-dim) 100%);color:#f5eeda;
+  font-family:var(--ui);font-weight:700;font-size:1rem;letter-spacing:.02em;
+  padding:14px 30px;border:none;border-radius:999px;cursor:pointer;min-height:50px;
+  box-shadow:0 3px 0 #123f47,2px 6px 14px rgba(36,28,16,.32),inset 0 1px 0 rgba(233,242,242,.35);
+  opacity:0;pointer-events:none;transition:opacity .35s ease,transform .35s cubic-bezier(.2,.7,.3,1.2)}
+.next-fab.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.next-fab:active{transform:translate(-50%,2px)}
+
+/* Besökta punkter: bläckprickar längs rutten */
+.visited{position:absolute;left:41px;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;z-index:4;
+  transform:scale(0);box-shadow:0 0 0 3px var(--bg);transition:transform .4s cubic-bezier(.34,1.56,.64,1)}
+.visited.show{transform:scale(1)}
+.visited.fwd{background:var(--correct);box-shadow:0 0 0 3px var(--bg),0 1px 3px var(--correct-glow)}
+.visited.back{background:var(--wrong);box-shadow:0 0 0 3px var(--bg),0 1px 3px var(--wrong-glow)}
+.visited.start{background:var(--bg);border:1.5px solid var(--text-faint);box-shadow:none}
+.visited-lab{position:absolute;left:56px;transform:translateY(-50%);font-family:var(--mono);font-size:.6rem;font-weight:700;
+  color:var(--text-faint);z-index:4;white-space:nowrap}
+
+/* Lediga platser: stilla streckade cirklar + guldbladsglitter */
+.slot-wrap{position:absolute;left:41px;width:0;height:0;z-index:5}
+.slot-mark{position:absolute;width:15px;height:15px;margin:-7.5px 0 0 -7.5px;
+  background:var(--paper);border:2px dashed var(--accent);border-radius:50%;
+  box-shadow:0 1px 2px rgba(36,28,16,.2)}
+.slot-mark.resolved{border-style:solid;transition:background .3s,border-color .3s,box-shadow .3s}
+.slot-mark.resolved.fwd{background:var(--correct);border-color:var(--correct-dim);box-shadow:0 1px 4px var(--correct-glow)}
+.slot-mark.resolved.back{background:var(--wrong);border-color:var(--wrong-dim);box-shadow:0 1px 4px var(--wrong-glow)}
+.slot-mark.resolved.other{opacity:.3}
+
+.sparkle{position:absolute;pointer-events:none;line-height:1;font-family:var(--ui);
+  color:var(--gilt);text-shadow:0 0 6px var(--gilt-glow);
+  opacity:.2;transform:scale(.55) rotate(0deg);
+  animation:glitter 3.2s ease-in-out infinite}
+.sparkle.blue{color:var(--accent);text-shadow:0 0 6px var(--accent-glow-strong)}
+.slot-wrap.resolved .sparkle{animation:none;opacity:0;transition:opacity .35s ease}
+@keyframes glitter{
+  0%,100%{opacity:.2;transform:scale(.55) rotate(0deg)}
+  50%{opacity:1;transform:scale(1.05) rotate(90deg)}}
+.slot-lab{position:absolute;left:58px;transform:translateY(-50%);z-index:5;white-space:nowrap;
+  font-family:var(--mono);font-weight:700;font-size:.74rem;color:var(--accent-dim);
+  background:var(--paper);border:1.5px solid var(--border-hover);border-radius:4px;padding:3px 8px;
+  box-shadow:1px 1px 0 rgba(36,28,16,.16)}
+
+/* ==== BLINK-VARIANT 4 · DISKRET, SNABBARE ==============================
+   Samma behagliga karaktär som variant 2 — mjuk glödring, ingen färg-
+   fyllning, etiketterna orörda — men piggare tempo: kortare andetag och
+   ett tredje, så hinten känns levande utan att bli seg. Fortfarande mjuk
+   ease-in-out (andas, inte staccato), växelvis mellan de två platserna. */
+@keyframes slotHint{
+  0%,100%{ box-shadow:0 1px 2px rgba(36,28,16,.2); border-color:var(--accent); transform:scale(1) }
+  50%    { box-shadow:0 0 0 4px var(--accent-glow), 0 0 12px var(--accent-glow);
+           border-color:var(--accent-dim); transform:scale(1.085) }
+}
+.slot-mark.hint{ animation:slotHint .28s ease-in-out var(--hint-delay,0s) 3 }
+
+/* ---- Spelkolumn ---- */
+.play-col{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-start;padding:2px 0 8px}
+.play-mid{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:12px;margin-top:10px}
+
+/* Centrum-texten bär alltid plakettens färg — den är spelarens röst.
+   Statusrad överst, under den alltid positionen: händelse + år. */
+.feedback{min-height:54px;text-align:center;font-weight:700;font-size:.92rem;line-height:1.32;
+  opacity:0;transform:translateY(4px);transition:opacity .3s,transform .3s;padding:0 4px;font-family:var(--ui);
+  color:var(--accent-dim)}
+.feedback.show{opacity:1;transform:none}
+.feedback.fwd,.feedback.back{color:var(--accent-dim)}
+.feedback .fb-pos{display:block;font-size:.84rem;font-weight:600;color:var(--accent);margin-top:3px}
+
+.question{text-align:center;font-family:var(--display);font-style:italic;font-size:1.12rem;color:var(--text-dim)}
+.question b{color:var(--ink);font-weight:700;font-style:normal}
+/* v17_centrum: när intro-pilen tonat ut glimmar SVARSKNAPPARNA till —
+   en ljusstrimma sveper över korten (samma som glint) och kanten får en
+   kort guldpuls: "nästa steg är att välja ett av de här" */
+.card.beckon{animation:cardBeckon 1.3s ease-in-out}
+@keyframes cardBeckon{
+  0%,100%{border-color:var(--border-hover);box-shadow:var(--shadow)}
+  40%{border-color:rgba(151,107,18,.6);box-shadow:3px 3px 0 rgba(36,28,16,.14),0 0 14px rgba(151,107,18,.35)}}
+.card.beckon::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:2;border-radius:inherit;
+  background:linear-gradient(105deg,transparent 38%,rgba(255,243,212,.55) 50%,transparent 62%);
+  transform:translateX(-115%);animation:cardShimmer 1.25s ease-in-out}
+
+/* Kort — stora tryckytor, klippta ur journalen */
+.cards{display:grid;grid-auto-rows:1fr;gap:12px}
+.card{
+  position:relative;width:100%;text-align:center;cursor:pointer;
+  display:flex;flex-direction:column;justify-content:center;gap:6px;
+  background:var(--paper);
+  border:1.5px solid var(--border-hover);border-radius:var(--radius);
+  padding:17px 20px;min-height:78px;overflow:hidden;
+  font-family:var(--ui);font-weight:500;line-height:1.3;color:var(--text);
+  box-shadow:var(--shadow);
+  transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease,background .3s ease;
+  animation:fadeIn .45s ease backwards;
+}
+.card:not(.revealed):hover{background:#faf5e6;
+  border-color:var(--accent);transform:translateY(-2px);box-shadow:4px 5px 0 rgba(36,28,16,.16)}
+.card:not(.revealed):active{transform:scale(.98)}
+.card .event{font-family:var(--display);font-size:1.18rem;font-weight:600;color:var(--ink);line-height:1.28}
+/* FRÅGA 4 · B — overlay: året ligger som en pill absolut i kortets nederkant
+   och påverkar inte flödet → ingen omflödning alls. */
+/* inga årtal/etiketter i knapparna — bara händelsetext + grön/röd markering */
+.card .reveal-row{display:none}
+.card .year{font-family:var(--mono);font-weight:700;font-size:1rem}
+.card .dist{font-family:var(--mono);font-size:.88rem;color:var(--text-dim)}
+.card .badge{position:absolute;top:10px;right:12px;width:24px;height:24px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;color:#f5eeda;
+  opacity:0;transform:scale(0);transition:all .35s cubic-bezier(.34,1.56,.64,1)}
+.card.fwd{border-color:var(--correct);background:linear-gradient(var(--correct-soft),var(--correct-soft)) var(--paper)}
+.card.fwd .year{color:var(--correct-dim)}
+.card.fwd .badge{background:var(--correct);opacity:1;transform:scale(1)}
+.card.back{border-color:var(--wrong);background:linear-gradient(var(--wrong-soft),var(--wrong-soft)) var(--paper)}
+.card.back .year{color:var(--wrong-dim)}
+.card.back .badge{background:var(--wrong);opacity:1;transform:scale(1)}
+.card.dim{opacity:.5}
+.cards.locked .card{pointer-events:none}
+
+/* ---- Slutskärm ---- */
+.overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;
+  background:rgba(36,28,16,.45);backdrop-filter:blur(4px);z-index:50;
+  opacity:0;pointer-events:none;transition:opacity .4s}
+.overlay.show{opacity:1;pointer-events:auto}
+.panel{width:min(94%,380px);max-height:90dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  background:var(--paper);border:1px solid var(--border-hover);border-radius:var(--radius-lg);
+  outline:1px solid var(--border);outline-offset:-6px;
+  padding:26px 22px calc(24px + env(safe-area-inset-bottom));text-align:center;
+  box-shadow:6px 8px 0 rgba(36,28,16,.2),0 18px 50px rgba(36,28,16,.35);
+  transform:translateY(16px) scale(.98);transition:transform .4s cubic-bezier(.2,.7,.3,1.2)}
+.overlay.show .panel{transform:none}
+.panel h2{font-family:var(--display);font-style:italic;font-weight:800;font-size:2rem;color:var(--ink)}
+.panel .goal-name{font-family:var(--display);font-size:1.1rem;color:var(--text-dim);margin-top:4px;line-height:1.3}
+.panel .big-year{font-family:var(--mono);font-size:1.5rem;font-weight:700;margin:9px 0 2px;color:var(--seal)}
+.panel p{color:var(--text-dim);font-size:.96rem;line-height:1.5}
+.panel p b{color:var(--ink)}
+.dots{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin:12px 0 4px}
+.dots span{width:12px;height:12px;border-radius:50%;background:var(--correct);box-shadow:0 1px 3px var(--correct-glow);
+  transform:scale(0);animation:dotPop .4s cubic-bezier(.34,1.56,.64,1) forwards}
+.dots span.back{background:var(--wrong);box-shadow:0 1px 3px var(--wrong-glow)}
+@keyframes dotPop{to{transform:scale(1)}}
+.compare{display:flex;justify-content:center;gap:28px;margin:10px 0 4px}
+.compare .box{text-align:center}
+.compare .num{font-family:var(--mono);font-weight:700;font-size:1.8rem;line-height:1.1;color:var(--ink)}
+.compare .lab{font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint)}
+.compare .best .num{color:var(--gilt)}
+.route{margin-top:14px;max-height:160px;overflow-y:auto;text-align:left;font-size:.84rem;line-height:1.35}
+.route .row{display:flex;gap:9px;align-items:baseline;padding:6px 10px;margin-bottom:5px;
+  border-left:3px solid var(--correct);background:var(--correct-soft);border-radius:0 6px 6px 0;color:var(--text)}
+.route .row.back{border-left-color:var(--wrong);background:var(--wrong-soft)}
+.route .y{font-family:var(--mono);font-weight:700;font-size:.72rem;min-width:60px;color:var(--correct-dim);white-space:nowrap}
+.route .row.back .y{color:var(--wrong-dim)}
+.actions{display:flex;justify-content:center;gap:10px;margin-top:18px;flex-wrap:wrap}
+.btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  background:linear-gradient(180deg,#b04a33 0%,var(--seal) 55%,#7f2c1d 100%);color:#f7ecd9;
+  font-family:var(--ui);font-weight:700;font-size:1rem;padding:15px 28px;border:none;border-radius:999px;cursor:pointer;
+  letter-spacing:.02em;box-shadow:0 3px 0 #642013,2px 5px 10px rgba(36,28,16,.3),inset 0 1px 0 rgba(255,235,220,.3);
+  transition:transform .15s;min-height:48px}
+.btn-primary:active{transform:scale(.96)}
+.btn-ghost{display:inline-flex;align-items:center;justify-content:center;color:var(--text-dim);
+  font-family:var(--ui);font-size:.96rem;font-weight:600;padding:14px 22px;border-radius:999px;
+  border:1px solid var(--border-hover);background:transparent;cursor:pointer;transition:all .2s;min-height:48px}
+.btn-ghost:active{transform:scale(.96)}
+
+.confetti{position:fixed;top:-30px;width:2px;height:24px;border-radius:2px;z-index:51;pointer-events:none;
+  animation:fall linear forwards;transform:rotate(16deg)}
+@keyframes fall{to{transform:translate(22vw,110vh) rotate(16deg);opacity:.1}}
+
+/* ---- Daily-game additions ---- */
+.dstats{display:flex;justify-content:center;gap:26px;margin:14px 0 2px;padding-top:12px;border-top:1px dashed var(--border)}
+.dstats .box{text-align:center}
+.dstats .num{font-family:var(--mono);font-weight:700;font-size:1.25rem;line-height:1.2;color:var(--ink)}
+.dstats .num.gold{color:var(--gilt)}
+.dstats .lab{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint)}
+.countdown{margin-top:14px;font-family:var(--mono);font-size:.78rem;color:var(--text-dim);min-height:1em}
+.countdown b{color:var(--ink);font-variant-numeric:tabular-nums}
+.panel-foot{margin-top:16px;padding-top:12px;border-top:1px dashed var(--border);font-size:.76rem;color:var(--text-faint)}
+.panel-foot a{color:var(--text-dim);text-decoration:none;border-bottom:1px dotted var(--text-faint)}
+.panel-foot .sep{margin:0 7px}
+.toast{position:fixed;left:50%;bottom:calc(30px + env(safe-area-inset-bottom));transform:translate(-50%,20px);
+  background:var(--ink);color:var(--paper);font-size:.9rem;font-weight:600;padding:11px 20px;border-radius:999px;
+  opacity:0;pointer-events:none;transition:all .3s;z-index:60}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.test-badge{position:fixed;top:10px;right:10px;z-index:70;background:var(--seal);color:#f5eeda;
+  font-family:var(--mono);font-weight:700;font-size:.66rem;letter-spacing:.14em;padding:4px 10px;border-radius:6px;box-shadow:var(--shadow)}
+textarea.fb-input{width:100%;min-height:110px;margin:12px 0 4px;padding:12px;font-family:var(--ui);font-size:.95rem;
+  color:var(--text);background:var(--paper-2);border:1.5px solid var(--border-hover);border-radius:var(--radius);resize:vertical}
+header h1{font-size:1.92rem}
+
+/* Större telefoner / liggande — låt spelet andas lite mer */
+@media (min-height:760px){
+  .play-mid{gap:14px}
+  .card{min-height:84px}
+}
+/* Dator/surfplatta: bredare spelyta, bredare ränna åt axeln — plaketten
+   och etiketterna får gott om plats utan att nudda korten */
+@media (min-width:700px) and (min-height:640px){
+  #app{max-width:560px}
+  .axis-col{width:150px}
+  /* bredare skärm: bandet ryms på en rad igen */
+  .journey-banner{flex-direction:row;align-items:stretch;gap:10px}
+  .journey-banner .jb-arrow{display:flex}
+  .journey-banner .jb-end{flex-direction:column;align-items:flex-end;justify-content:center;gap:0}
+  .journey-banner .jb-event{font-size:.98rem}
+  .card{min-height:90px}
+  .me-year{font-size:1.18rem}
+  .me.long{gap:6px;padding:0 12px 0 10px}
+  .me.long .me-icon{display:block;width:14px;height:14px}
+  .me.long .me-year{font-size:.95rem}
+}
+
+</style>
+<!-- Test mode (/test) and preview mode (/tomorrow): no analytics at all. -->
+<script>
+  window.TT_TEST_MODE = /\/(test|tomorrow)(\/|$)/i.test(window.location.pathname);
+  window.TT_PREVIEW_MODE = /\/(tomorrow)(\/|$)/i.test(window.location.pathname);
+  window.TT_OWN_DEVICE = false;
+  try {
+    if (window.TT_TEST_MODE) localStorage.setItem('skipgc', 't');
+    if (location.hash === '#toggle-goatcounter') {
+      var _wasOff = localStorage.getItem('skipgc') === 't';
+      if (_wasOff) localStorage.removeItem('skipgc');
+      else localStorage.setItem('skipgc', 't');
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e2) {}
+      alert(_wasOff ? 'This browser is now INCLUDED in measurement again.'
+                    : 'This browser is now EXCLUDED from measurement (own device).');
+    }
+    window.TT_OWN_DEVICE = localStorage.getItem('skipgc') === 't';
+  } catch (e) { /* localStorage unavailable — measure as normal */ }
+  if (!window.TT_TEST_MODE && !window.TT_OWN_DEVICE) {
+    // Prefix pageview paths with /timetravel — the GoatCounter account is
+    // shared with Daily Timeline, so traffic must be distinguishable.
+    window.goatcounter = {
+      path: function(p) { return '/timetravel' + (p || '/'); },
+      allow_frame: true
+    };
+    var _gc = document.createElement('script');
+    _gc.src = '//gc.zgo.at/count.js';
+    _gc.async = true;
+    _gc.setAttribute('data-goatcounter', 'https://tidslinjen.goatcounter.com/count');
+    document.head.appendChild(_gc);
+  }
+</script>
+</head>
+<body>
+<div id="app" class="screen-fade">
+  <header>
+    <h1 class="fade-in">Daily Time Travel</h1>
+    <div class="day-lab fade-in-d1" id="dayLab"></div>
+  </header>
+
+  <div class="board" id="boardWrap">
+    <svg class="connector-svg" id="connSvg"></svg>
+    <div class="axis-col" id="axis">
+      <div class="axis-line" id="axisLine"></div>
+      <div class="me" id="me"><svg class="me-icon" viewBox="0 0 24 24"><path d="M6,3 L18,3 L12,12 L18,21 L6,21 L12,12 Z"/></svg><span class="me-year" id="meYear"></span></div>
+    </div>
+
+    <div class="play-col">
+      <div class="journey-banner fade-in-d2" id="journeyBanner">
+        <div class="jb-side jb-start">
+          <div class="jb-label">From</div>
+          <div class="jb-event" id="jbStart"></div>
+        </div>
+        <div class="jb-arrow">→</div>
+        <div class="jb-side jb-end">
+          <div class="jb-label">Goal · year</div>
+          <div class="jb-year" id="jbEnd"></div>
+        </div>
+      </div>
+      <div class="meta fade-in-d3">
+        <span>Hops: <b id="steps">0</b></span>
+        <span>Wrong: <b id="wrongs">0</b></span>
+        <span class="streak-chip" id="streakChip">In a row: <b id="streak">0</b></span>
+        <span>Par: <b id="optimal">–</b></span>
+      </div>
+      <div class="play-mid">
+        <div class="feedback" id="feedback"></div>
+        <p class="question">Which happened <b>most recently</b>?</p>
+        <div class="cards" id="cards"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="next-fab" id="nextFab">Next →</button>
+
+<div class="overlay" id="overlay">
+  <div class="panel">
+    <h2>You've arrived!</h2>
+    <div class="goal-name" id="goalName"></div>
+    <div class="big-year" id="finalYear"></div>
+    <div class="dots" id="resultDots"></div>
+    <div class="compare">
+      <div class="box"><div class="num" id="cmpYou">–</div><div class="lab">Your hops</div></div>
+      <div class="box best"><div class="num" id="cmpBest">–</div><div class="lab">Par</div></div>
+    </div>
+    <p id="finalText"></p>
+    <div class="dstats" id="dstats"></div>
+    <div class="route" id="route"></div>
+    <div class="actions">
+      <button class="btn-primary" id="btnShare">Share result</button>
+      <button class="btn-ghost" id="btnReplay">Play again</button>
+      <button class="btn-ghost" id="btnNextDay" style="display:none">Next day →</button>
+    </div>
+    <div class="countdown" id="countdown"></div>
+    <div class="panel-foot">
+      <a href="https://ko-fi.com/klurium" target="_blank" rel="noopener">☕ Buy me a coffee</a>
+      <span class="sep">·</span>
+      <a href="#" id="fbLink">Feedback?</a>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="fbOverlay">
+  <div class="panel" style="text-align:left">
+    <h2 style="font-size:1.4rem">Feedback</h2>
+    <p style="margin-top:6px">Found a bug? Too easy, too hard? I read everything.</p>
+    <textarea class="fb-input" id="fbText" placeholder="Write anything…"></textarea>
+    <div class="actions" style="margin-top:4px">
+      <button class="btn-primary" id="fbSend">Send</button>
+      <button class="btn-ghost" id="fbCancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Copied!</div>
+
+<script>
+/* =========================================================
+   SPELMOTOR — identisk logik med v1/v2/v6, oförändrad.
+   ========================================================= */
+const SPAN_MIN = 7, SPAN_MAX = 9;
+const TRAPS_BELOW = 6;
+const TARGET_OPTIMAL = 3;
+const THIS_YEAR = 2026;
+
+const EVENTS = [
+  [-3500, "The wheel is invented in Mesopotamia"],
+  [-3300, "The Bronze Age begins"],
+  [-3200, "Hieroglyphic writing begins in Egypt"],
+  [-2560, "The Great Pyramid of Giza is built"],
+  [-2500, "Stonehenge is completed"],
+  [-2350, "Noah's Ark and the Great Flood"],
+  [-2334, "The Akkadian Empire — the world's first empire"],
+  [-2200, "The Tower of Babel"],
+  [-1900, "The calling of Abraham"],
+  [-1754, "Hammurabi's code of laws is written"],
+  [-1700, "Joseph is sold into Egypt"],
+  [-1500, "Glassmaking is developed in Egypt"],
+  [-1446, "The Exodus from Egypt"],
+  [-1323, "Tutankhamun is buried"],
+  [-1200, "The Trojan War, according to legend"],
+  [-1050, "Saul becomes Israel's first king"],
+  [-1010, "David becomes King of Israel"],
+  [-966, "Solomon builds the Temple in Jerusalem"],
+  [-814, "The Phoenicians found Carthage in North Africa"],
+  [-776, "The first ancient Olympic Games"],
+  [-753, "Rome is founded, according to legend"],
+  [-750, "Homer composes the Iliad"],
+  [-700, "The age of classical antiquity begins"],
+  [-586, "The Babylonian captivity begins"],
+  [-563, "Buddha is born"],
+  [-559, "Cyrus the Great founds the Persian Empire"],
+  [-551, "Confucius is born"],
+  [-530, "Pythagoras formulates his theorem"],
+  [-509, "The Roman Republic is founded"],
+  [-508, "Athenian democracy is born under Cleisthenes"],
+  [-490, "The Battle of Marathon"],
+  [-432, "The Parthenon is completed in Athens"],
+  [-399, "Socrates is sentenced to death in Athens"],
+  [-390, "The Gauls sack Rome"],
+  [-387, "Plato founds the Academy in Athens"],
+  [-335, "Aristotle founds the Lyceum in Athens"],
+  [-331, "Alexander the Great conquers Persia"],
+  [-330, "The Hellenistic age begins"],
+  [-240, "Eratosthenes measures the Earth's circumference"],
+  [-218, "Hannibal crosses the Alps"],
+  [-214, "Construction of the Great Wall of China begins"],
+  [-200, "The water wheel is invented in Greece"],
+  [-146, "Carthage is destroyed"],
+  [-73, "Spartacus leads the slave revolt"],
+  [-44, "Julius Caesar is assassinated"],
+  [-31, "The Battle of Actium"],
+  [-30, "Cleopatra dies"],
+  [-27, "Augustus founds the Roman Empire"],
+  [1, "The birth of Jesus"],
+  [70, "The Romans destroy the Temple in Jerusalem"],
+  [79, "Mount Vesuvius erupts and buries Pompeii"],
+  [80, "The Colosseum is inaugurated"],
+  [95, "The Book of Revelation is written on Patmos"],
+  [105, "Paper is invented in China"],
+  [150, "Ptolemy writes the Almagest"],
+  [175, "Marcus Aurelius writes his Meditations"],
+  [224, "The Sasanian Empire is founded in Persia"],
+  [313, "Christianity is legalized in the Roman Empire"],
+  [325, "The Council of Nicaea"],
+  [330, "Constantine the Great founds Constantinople"],
+  [395, "The Roman Empire splits into East and West"],
+  [400, "Augustine writes his Confessions"],
+  [451, "Attila the Hun invades Gaul"],
+  [476, "The fall of the Western Roman Empire"],
+  [537, "The Hagia Sophia is completed"],
+  [622, "The Hijra — Muhammad's journey to Medina"],
+  [632, "Muhammad dies — Islam is established"],
+  [651, "The Arabs conquer Persia"],
+  [793, "Vikings raid Lindisfarne"],
+  [800, "Charlemagne is crowned emperor"],
+  [820, "Al-Khwarizmi lays the foundations of algebra"],
+  [850, "Gunpowder is invented in China"],
+  [962, "Otto I is crowned Holy Roman Emperor"],
+  [1000, "Leif Erikson reaches Vinland"],
+  [1016, "Cnut the Great becomes King of England"],
+  [1040, "Macbeth becomes King of Scots"],
+  [1054, "The Great Schism splits the Church"],
+  [1066, "William the Conqueror invades England"],
+  [1088, "The University of Bologna is founded"],
+  [1095, "The Pope proclaims the First Crusade"],
+  [1099, "Crusaders capture Jerusalem"],
+  [1119, "The Knights Templar are founded"],
+  [1140, "Gothic architecture is born in France"],
+  [1163, "Construction of Notre-Dame begins in Paris"],
+  [1180, "Windmills appear in northwestern Europe"],
+  [1190, "The magnetic compass reaches Europe"],
+  [1206, "Genghis Khan founds the Mongol Empire"],
+  [1215, "The Magna Carta is signed"],
+  [1241, "Mongol armies reach Europe"],
+  [1258, "Baghdad is destroyed by the Mongols"],
+  [1271, "Marco Polo sets out for China"],
+  [1274, "Thomas Aquinas writes the Summa Theologica"],
+  [1275, "Marco Polo meets Kublai Khan"],
+  [1286, "Eyeglasses are invented in Italy"],
+  [1320, "Dante completes the Divine Comedy"],
+  [1325, "The Aztecs found Tenochtitlan on a lake"],
+  [1335, "Mechanical tower clocks begin striking in Europe"],
+  [1337, "The Hundred Years' War begins"],
+  [1347, "The Black Death reaches Europe"],
+  [1387, "Chaucer begins The Canterbury Tales"],
+  [1400, "The Renaissance begins in Italy"],
+  [1431, "Joan of Arc is burned at the stake"],
+  [1436, "Brunelleschi completes the dome of Florence Cathedral"],
+  [1440, "Gutenberg's printing press"],
+  [1453, "The fall of Constantinople"],
+  [1478, "The Spanish Inquisition is established"],
+  [1492, "Columbus reaches America"],
+  [1494, "Pacioli publishes the book on double-entry bookkeeping"],
+  [1498, "Vasco da Gama reaches India by sea"],
+  [1501, "Shia Islam becomes Persia's state religion"],
+  [1503, "Leonardo begins painting the Mona Lisa"],
+  [1513, "Machiavelli writes The Prince"],
+  [1517, "Martin Luther posts his 95 theses"],
+  [1519, "Cortés lands in Mexico"],
+  [1522, "Magellan's expedition circles the globe"],
+  [1526, "Babur founds the Mughal Empire in India"],
+  [1543, "Vesalius maps the human body"],
+  [1558, "Elizabeth I becomes Queen of England"],
+  [1571, "The Battle of Lepanto"],
+  [1576, "Tycho Brahe builds his island observatory Uraniborg"],
+  [1600, "The Baroque era begins"],
+  [1601, "Shakespeare writes Hamlet"],
+  [1602, "The Dutch East India Company is founded"],
+  [1605, "Cervantes publishes Don Quixote"],
+  [1607, "Monteverdi's opera L'Orfeo premieres"],
+  [1609, "Galileo points his telescope at the sky"],
+  [1618, "The Thirty Years' War begins"],
+  [1620, "The Mayflower arrives in America"],
+  [1628, "Sweden's warship Vasa sinks on her maiden voyage"],
+  [1636, "Harvard College is founded"],
+  [1633, "Galileo is condemned by the Inquisition"],
+  [1637, "Descartes publishes his Discourse on the Method"],
+  [1642, "Rembrandt paints The Night Watch"],
+  [1648, "The Peace of Westphalia"],
+  [1649, "Charles I is executed in England"],
+  [1653, "The Taj Mahal is completed"],
+  [1666, "The Great Fire of London"],
+  [1676, "The microscope reveals bacteria"],
+  [1682, "Louis XIV moves his court to Versailles"],
+  [1687, "Newton publishes the Principia"],
+  [1688, "The Glorious Revolution in England"],
+  [1707, "England and Scotland unite as Great Britain"],
+  [1714, "Fahrenheit invents the mercury thermometer"],
+  [1719, "Robinson Crusoe is published"],
+  [1721, "Bach's Brandenburg Concertos"],
+  [1735, "Linnaeus publishes Systema Naturae"],
+  [1742, "Handel's Messiah premieres"],
+  [1751, "The Encyclopédie begins publication"],
+  [1756, "The Seven Years' War begins"],
+  [1758, "Halley's Comet returns as predicted"],
+  [1769, "Watt patents his improved steam engine"],
+  [1770, "James Cook reaches Australia"],
+  [1773, "The Boston Tea Party"],
+  [1776, "The American Declaration of Independence"],
+  [1781, "Herschel discovers Uranus"],
+  [1787, "The US Constitution is adopted"],
+  [1789, "The French Revolution begins"],
+  [1791, "Mozart dies"],
+  [1793, "Louis XVI is guillotined"],
+  [1796, "Edward Jenner's smallpox vaccine"],
+  [1798, "Napoleon invades Egypt"],
+  [1800, "Volta invents the battery"],
+  [1801, "Thomas Jefferson becomes US president"],
+  [1804, "Napoleon crowns himself emperor"],
+  [1805, "The Battle of Trafalgar"],
+  [1808, "Beethoven's 5th Symphony premieres"],
+  [1807, "Britain abolishes the slave trade"],
+  [1812, "Napoleon invades Russia"],
+  [1814, "The Congress of Vienna begins"],
+  [1815, "Napoleon is defeated at Waterloo"],
+  [1818, "Mary Shelley writes Frankenstein"],
+  [1821, "Greece's war of independence against the Ottomans"],
+  [1822, "Charles Babbage designs the Difference Engine"],
+  [1824, "Beethoven's 9th Symphony premieres"],
+  [1825, "The world's first steam railway opens (Stockton–Darlington)"],
+  [1829, "Stephenson's Rocket wins the Rainhill locomotive trials"],
+  [1830, "Berlioz's Symphonie fantastique"],
+  [1835, "Hans Christian Andersen publishes his first fairy tales"],
+  [1837, "Babbage designs the mechanical Analytical Engine"],
+  [1839, "Daguerre presents photography"],
+  [1844, "Morse sends his first telegram"],
+  [1846, "Howe patents the sewing machine"],
+  [1848, "The Communist Manifesto is published"],
+  [1850, "Mass emigration to America takes off"],
+  [1853, "The Crimean War breaks out"],
+  [1859, "Darwin's On the Origin of Species"],
+  [1861, "The American Civil War begins"],
+  [1862, "Pasteur invents pasteurization"],
+  [1863, "The English Football Association is founded"],
+  [1865, "Slavery is abolished in the US"],
+  [1867, "Alfred Nobel invents dynamite"],
+  [1869, "The Suez Canal opens"],
+  [1871, "Verdi's Aida premieres"],
+  [1876, "The telephone is invented"],
+  [1877, "The first Wimbledon championships"],
+  [1879, "Edison's light bulb"],
+  [1883, "Nietzsche publishes Thus Spoke Zarathustra"],
+  [1886, "Karl Benz patents the first automobile"],
+  [1889, "The Eiffel Tower is inaugurated"],
+  [1890, "Hollerith counts the US census with punched cards"],
+  [1892, "Tchaikovsky's Nutcracker premieres"],
+  [1894, "Pierre de Coubertin founds the IOC"],
+  [1895, "The Lumière brothers' first public film screening"],
+  [1896, "The first modern Olympics in Athens"],
+  [1898, "Marie Curie discovers radioactivity"],
+  [1900, "The Boxer Rebellion in China"],
+  [1901, "The first Nobel Prizes are awarded"],
+  [1903, "The Wright brothers' first flight"],
+  [1905, "Einstein's special theory of relativity"],
+  [1908, "The Anglo-Persian Oil Company is founded"],
+  [1910, "The Mexican Revolution"],
+  [1911, "Amundsen reaches the South Pole"],
+  [1912, "The Titanic sinks"],
+  [1913, "Stravinsky's Rite of Spring premieres"],
+  [1914, "World War I begins"],
+  [1917, "The Russian Revolution"],
+  [1918, "The Spanish flu breaks out"],
+  [1919, "The Treaty of Versailles is signed"],
+  [1920, "The word \"robot\" is coined in the play R.U.R."],
+  [1922, "Howard Carter discovers Tutankhamun's tomb"],
+  [1925, "Edwin Hubble shows the Milky Way is one of billions of galaxies"],
+  [1927, "The Jazz Singer — the first feature-length talkie"],
+  [1928, "Penicillin is discovered"],
+  [1929, "The Wall Street Crash"],
+  [1930, "The first football World Cup in Uruguay"],
+  [1933, "Franklin D. Roosevelt becomes US president"],
+  [1936, "The Spanish Civil War begins"],
+  [1937, "Snow White — the first feature-length animated film"],
+  [1938, "Kristallnacht"],
+  [1939, "Gone with the Wind premieres"],
+  [1941, "The attack on Pearl Harbor"],
+  [1942, "Asimov formulates the laws of robotics"],
+  [1945, "The atomic bomb is dropped on Hiroshima"],
+  [1946, "ENIAC — the first electronic computer"],
+  [1947, "The transistor is invented at Bell Labs"],
+  [1948, "The State of Israel is proclaimed"],
+  [1949, "Mao proclaims the People's Republic of China"],
+  [1950, "The Turing test is formulated"],
+  [1952, "The first hydrogen bomb test"],
+  [1953, "The structure of DNA is discovered"],
+  [1956, "The term \"artificial intelligence\" is coined"],
+  [1957, "Sputnik 1 is launched"],
+  [1958, "Kilby builds the integrated circuit"],
+  [1959, "The Cuban Revolution"],
+  [1960, "The birth control pill is approved for sale"],
+  [1961, "John F. Kennedy becomes US president"],
+  [1962, "The Cuban Missile Crisis"],
+  [1966, "ELIZA — the first chatbot"],
+  [1967, "The first successful heart transplant"],
+  [1968, "The Black Power salute at the Mexico City Olympics"],
+  [1969, "The Moon landing"],
+  [1970, "The Beatles break up"],
+  [1971, "Intel launches the microprocessor"],
+  [1972, "The Godfather premieres"],
+  [1973, "The mobile phone is invented"],
+  [1974, "The Carnation Revolution in Portugal"],
+  [1975, "The Apollo–Soyuz handshake in space"],
+  [1976, "Apple is founded"],
+  [1977, "Star Wars premieres"],
+  [1978, "Space Invaders becomes an arcade hit"],
+  [1979, "The Islamic Revolution in Iran"],
+  [1980, "Pac-Man conquers the arcades"],
+  [1981, "AIDS is identified as a disease"],
+  [1982, "E.T. flies past the Moon"],
+  [1983, "TCP/IP links computers into the internet"],
+  [1984, "The Apple Macintosh is launched"],
+  [1985, "Super Mario Bros. is released for the NES"],
+  [1986, "The Chernobyl disaster"],
+  [1989, "The fall of the Berlin Wall"],
+  [1991, "The World Wide Web opens to the public"],
+  [1993, "Bill Clinton becomes US president"],
+  [1994, "Sony's PlayStation is launched"],
+  [1995, "Windows 95 launches"],
+  [1997, "Titanic premieres in cinemas"],
+  [1998, "Google is founded"],
+  [2000, "The first crew boards the International Space Station"],
+  [2001, "Wikipedia is founded"],
+  [2003, "The human genome is fully mapped"],
+  [2004, "World of Warcraft goes online"],
+  [2006, "Google Translate launches"],
+  [2007, "The iPhone is launched"],
+  [2008, "Spotify launches"],
+  [2009, "Avatar premieres in cinemas"],
+  [2010, "The Arab Spring begins"],
+  [2011, "Minecraft is released in full version"],
+  [2012, "The Higgs boson is discovered at CERN"],
+  [2016, "AlphaGo defeats Lee Sedol"],
+  [2019, "The first image of a black hole"],
+  [2020, "Covid-19 is declared a pandemic"],
+  [2022, "ChatGPT is launched"],
+  [2023, "GPT-4 is launched"],
+  [2024, "The Summer Olympics in Paris"]
+];
+
+const fmtYear = y => y < 0 ? Math.abs(y).toLocaleString("en-US") + " BC" : (y < 1000 ? "AD " + y : "" + y);
+const fmtYearLong = fmtYear;
+
+function rndNext(st){
+  st.a |= 0; st.a = st.a + 0x6D2B79F5 | 0;
+  let t = Math.imul(st.a ^ st.a >>> 15, 1 | st.a);
+  t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+  return ((t ^ t >>> 14) >>> 0) / 4294967296;
+}
+function pickR(list, rng){ return list[Math.floor(rndNext(rng) * list.length)]; }
+function hashStr(str){
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < str.length; i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+
+function makeState(seed){
+  const rng = { a: seed };
+  const N = EVENTS.length;
+  const span = SPAN_MIN + Math.floor(rndNext(rng) * (SPAN_MAX - SPAN_MIN + 1));
+  const i = TRAPS_BELOW + Math.floor(rndNext(rng) * (N - span - TRAPS_BELOW));
+  const j = i + span;
+  return {
+    rng,
+    start: EVENTS[i],
+    goal:  EVENTS[j],
+    pool:  EVENTS.slice(i - TRAPS_BELOW, i).concat(EVENTS.slice(i + 1, j + 1)),
+    pos:   EVENTS[i][0],
+    used:  [],
+    dead:  [],
+    shown: []
+  };
+}
+/* Soft difficulty guard: the two cards should sit comfortably apart in time.
+   The bar scales with how long ago we are (log-ish time perception) — a
+   4-year gap in the 1990s reads like a 60-year gap in antiquity. */
+function minGap(pos){
+  const ago = Math.max(1, THIS_YEAR - pos);
+  return Math.min(60, Math.max(4, Math.round(ago * 0.05)));
+}
+function drawPair(s){
+  const sortF = l => l.sort((a,b) => a[0]-b[0]), sortP = l => l.sort((a,b) => b[0]-a[0]);
+  const fresh = e => !s.shown.includes(e);
+
+  const futsAll = sortF(s.pool.filter(e => e[0] > s.pos));
+  if (!futsAll.length) return null;
+  let futs = futsAll.filter(fresh);
+  if (!futs.length) futs = futsAll;
+
+  let pastsAll = sortP(s.pool.filter(e => e[0] < s.pos));
+  if (!pastsAll.length) pastsAll = sortP(s.used.filter(e => e[0] < s.pos));
+  let pasts = pastsAll.filter(fresh);
+  if (!pasts.length) pasts = pastsAll;
+
+  const fCand = futs.slice(0, 4), pCand = pasts.slice(0, 3);
+  if (pCand.length){
+    // all future×past pairings; prefer the ones with a comfortable year gap
+    const combos = [];
+    fCand.forEach(a => pCand.forEach(b => combos.push([a, b])));
+    const g = minGap(s.pos);
+    let ok = combos.filter(c => c[0][0] - c[1][0] >= g);
+    if (!ok.length){
+      combos.sort((x, y) => (y[0][0] - y[1][0]) - (x[0][0] - x[1][0]));
+      ok = [combos[0]]; // nothing clears the bar — take the widest pairing
+    }
+    const c = pickR(ok, s.rng);
+    return { a: c[0], b: c[1] };
+  }
+  // no past candidates at all — fall back to two future events
+  const a = pickR(fCand, s.rng);
+  let rest = fCand.filter(e => e !== a);
+  if (rest.length){
+    const g = minGap(s.pos);
+    const wide = rest.filter(e => Math.abs(e[0] - a[0]) >= g);
+    if (wide.length) rest = wide;
+    else rest = [rest.reduce((m,e) => Math.abs(e[0]-a[0]) > Math.abs(m[0]-a[0]) ? e : m)];
+    return { a, b: pickR(rest, s.rng) };
+  }
+  const others = EVENTS.filter(e => e !== a && e[0] !== s.pos && !s.dead.includes(e))
+                       .sort((x,y) => Math.abs(x[0]-s.pos) - Math.abs(y[0]-s.pos));
+  return others.length ? { a, b: others[0] } : null;
+}
+function applyChoice(s, pair, ev){
+  s.pool = s.pool.filter(e => e !== ev);
+  if (s.used.includes(ev)){
+    s.used = s.used.filter(e => e !== ev);
+    s.dead.push(ev);
+  } else s.used.push(ev);
+  s.shown.push(pair.a, pair.b);
+  s.pos = ev[0];
+}
+function playOptimal(seed){
+  const s = makeState(seed);
+  let hops = 0;
+  while (s.pos < s.goal[0] && hops < 80){
+    const p = drawPair(s);
+    if (!p) break;
+    applyChoice(s, p, p.a[0] > p.b[0] ? p.a : p.b);
+    hops++;
+  }
+  return hops;
+}
+
+function dateForOffset(off){
+  const d = new Date();
+  d.setDate(d.getDate() + off);
+  return d;
+}
+function dateKey(d){ return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
+function journeySig(seed){ const s = makeState(seed); return s.start[0] + ">" + s.goal[0]; }
+function startIdx(seed){ const s = makeState(seed); return EVENTS.indexOf(s.start); }
+function seedForOffset(off, depth){
+  depth = depth || 0;
+  // yesterday's journey: never the same signature, and start in a clearly
+  // different part of history (>= 30 index positions away) — era variety
+  const prevSeed = depth > 2 ? null : seedForOffset(off - 1, depth + 1);
+  const prevSig = prevSeed === null ? null : journeySig(prevSeed);
+  const prevIdx = prevSeed === null ? null : startIdx(prevSeed);
+  let fallback = null, seed;
+  for (let salt = 0; salt < 60; salt++){
+    seed = hashStr("timetravel-" + dateKey(dateForOffset(off)) + (salt ? "-" + salt : ""));
+    const okSig = journeySig(seed) !== prevSig &&
+                  (prevIdx === null || Math.abs(startIdx(seed) - prevIdx) >= 30);
+    if (okSig && playOptimal(seed) === TARGET_OPTIMAL) return seed;
+    if (okSig && fallback === null) fallback = seed;
+  }
+  return fallback !== null ? fallback : seed;
+}
+
+/* =========================================================
+   UI-LAGER — helt omgjort för v7.
+   ========================================================= */
+let S, pair, steps, wrongs, streak, optimal, history, busy, AXIS_MIN, AXIS_MAX, dayOffset = 0, visitedLabYs = [];
+let slotEls = new Map(), slotLabEls = new Map();
+const $ = id => document.getElementById(id);
+const cardsEl = $("cards"), fbEl = $("feedback"), axisEl = $("axis"), boardEl = $("boardWrap"), connSvg = $("connSvg");
+
+const yPct = year => (AXIS_MAX - year) / (AXIS_MAX - AXIS_MIN) * 100;
+
+function setYearNow(y){
+  const t = fmtYear(y);
+  $("meYear").textContent = t;
+  $("me").classList.toggle("long", t.length > 6);
+}
+
+function makeEmbers(){
+  for (let i = 0; i < 24; i++){
+    const e = document.createElement("div");
+    e.className = "ember";
+    const sz = 1.5 + Math.random() * 2;
+    e.style.width = e.style.height = sz + "px";
+    e.style.left = Math.random() * 100 + "vw";
+    e.style.animationDuration = (9 + Math.random() * 8) + "s";
+    e.style.animationDelay = (Math.random() * 10) + "s";
+    document.body.appendChild(e);
+  }
+}
+
+/* SVG-linje som RITAS UPP från det valda alternativet och knyter sig fast i
+   platsen på tidsaxeln — riktningen går kort → axel, inte tvärtom. */
+function drawConnector(cardEl, slotEl, cls){
+  if (!cardEl || !slotEl) return null;
+  const bw = boardEl.getBoundingClientRect();
+  const c = cardEl.getBoundingClientRect(), s = slotEl.getBoundingClientRect();
+  if (c.width === undefined || s.width === undefined) return null;
+  const x0 = c.left - bw.left, y0 = c.top + c.height / 2 - bw.top; // startar vid kortets vänsterkant
+  const x1 = s.left + s.width / 2 - bw.left, y1 = s.top + s.height / 2 - bw.top; // slutar mitt i platsen
+  const midX = (x0 + x1) / 2;
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", "M" + x0 + "," + y0 + " Q" + midX + "," + y0 + " " + x1 + "," + y1);
+  path.setAttribute("class", "conn-path " + cls);
+  connSvg.appendChild(path);
+  if (cls === "dim"){ path.remove(); return null; }
+  const len = path.getTotalLength();
+  path.style.strokeDasharray = len;
+  path.style.strokeDashoffset = len;
+  path.getBoundingClientRect();
+  path.style.transition = "stroke-dashoffset .55s cubic-bezier(.4,0,.2,1)";
+  path.style.strokeDashoffset = "0";
+  path.classList.add("show");
+  return path;
+}
+function fadeConnector(path){
+  if (!path) return;
+  path.classList.add("fade-out");
+  setTimeout(() => path.remove(), 700);
+}
+
+function buildAxis(){
+  axisEl.querySelectorAll(".axis-tick,.axis-tick-lab,.goal-pin,.goal-lab,.visited,.visited-lab,.slot-wrap,.slot-lab")
+        .forEach(n => n.remove());
+  visitedLabYs = [];
+  const lo = Math.min(...S.pool.map(e => e[0]), S.pos);
+  const hi = S.goal[0];
+  const pad = Math.max(4, (hi - lo) * 0.07);
+  AXIS_MIN = lo - pad; AXIS_MAX = hi + pad;
+  const span = AXIS_MAX - AXIS_MIN;
+  const step = [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000].find(st => span / st <= 9) || 5000;
+  for (let y = Math.ceil(AXIS_MIN / step) * step; y <= AXIS_MAX; y += step){
+    if (y > hi) continue; // inga skalstreck ovanför målet — skylten är linjens tak
+    add("axis-tick", y); add("axis-tick-lab", y).textContent = fmtYear(y);
+  }
+  add("goal-pin", hi);
+  add("goal-lab", hi).textContent = "GOAL · " + fmtYear(hi);
+  const line = $("axisLine");
+  line.style.animation = "none"; line.getBoundingClientRect(); line.style.animation = "";
+}
+function add(cls, year, atPct){
+  const d = document.createElement("div");
+  d.className = cls;
+  d.style.top = (atPct === undefined ? yPct(year) : atPct) + "%";
+  axisEl.appendChild(d);
+  return d;
+}
+function mark(year, cls, withLabel){
+  const el = add("visited " + (cls || ""), year);
+  requestAnimationFrame(() => el.classList.add("show"));
+  if (withLabel === false) return;
+  const y = yPct(year);
+  if (visitedLabYs.some(v => Math.abs(v - y) < 3.2)) return;
+  visitedLabYs.push(y);
+  add("visited-lab", year).textContent = fmtYear(year);
+}
+function showCandidates(){
+  axisEl.querySelectorAll(".slot-wrap,.slot-lab").forEach(n => n.remove());
+  slotEls = new Map(); slotLabEls = new Map();
+  const evs = [pair.a, pair.b];
+  const ys = evs.map(e => yPct(e[0]));
+  let lys = ys.slice();
+  if (Math.abs(lys[0] - lys[1]) < 6){
+    const mid = (lys[0] + lys[1]) / 2, sign = lys[0] <= lys[1] ? 1 : -1;
+    lys[0] = mid - 3 * sign; lys[1] = mid + 3 * sign;
+  }
+  const meY = yPct(S.pos);
+  // plaketten är högre än gamla brickan — håll kandidatetiketterna längre ifrån
+  lys = lys.map(v => Math.abs(v - meY) < 5.5 ? (v <= meY ? meY - 5.5 : meY + 5.5) : v);
+  evs.forEach((ev, k) => {
+    const mark = addSlotMark(ev, k === 1);
+    slotEls.set(ev, mark);
+    const lab = add("slot-lab", ev[0], lys[k]);
+    lab.textContent = fmtYear(ev[0]);
+    slotLabEls.set(ev, lab);
+    // diskret hint: mjuk glöd, växelvis mellan de två platserna (etiketter orörda)
+    mark.style.setProperty("--hint-delay", k === 1 ? ".14s" : "0s");
+    mark.classList.add("hint");
+  });
+}
+
+/* Symbolen på axeln är stilla — uppmärksamheten kommer i stället från ett
+   par tysta stjärngnistor som tänds/slocknar runt den, asynkront staplade
+   (olika delay/varaktighet) så det känns levande utan att symbolen rör sig. */
+function addSlotMark(ev, isAlt){
+  const wrap = document.createElement("div");
+  wrap.className = "slot-wrap";
+  wrap.style.top = yPct(ev[0]) + "%";
+  axisEl.appendChild(wrap);
+
+  const mark = document.createElement("div");
+  mark.className = "slot-mark";
+  wrap.appendChild(mark);
+
+  // delays ligger på jämna tredjedelar av varvet (~3.2s) så en gnista alltid
+  // är på väg upp när en annan tonar ner — ingen stund där alla tre är släckta
+  const layout = isAlt
+    ? [ { top: "-16px", left: "8px",  delay: ".5s",  dur: "3.2s", size: "11px" },
+        { top: "7px",   left: "10px", delay: "1.57s",dur: "3.0s", size: "8px",  blue: true },
+        { top: "-2px",  left: "-14px",delay: "2.63s",dur: "3.4s", size: "9px" } ]
+    : [ { top: "-15px", left: "-10px",delay: "0s",   dur: "3.1s", size: "12px" },
+        { top: "9px",   left: "-6px", delay: "1.07s",dur: "3.3s", size: "9px",  blue: true },
+        { top: "-4px",  left: "12px", delay: "2.13s",dur: "3.2s", size: "8px" } ];
+  layout.forEach(p => {
+    const s = document.createElement("span");
+    s.className = "sparkle" + (p.blue ? " blue" : "");
+    s.textContent = "✦";
+    s.style.top = p.top; s.style.left = p.left;
+    s.style.fontSize = p.size;
+    s.style.animationDelay = p.delay;
+    s.style.animationDuration = p.dur;
+    wrap.appendChild(s);
+  });
+  return mark;
+}
+function moveMe(animate){
+  const me = $("me");
+  if (!animate){ me.style.transition = "none"; }
+  me.style.top = yPct(S.pos) + "%";
+  if (!animate){ me.getBoundingClientRect(); me.style.transition = ""; }
+  if (animate){ me.classList.remove("land"); me.getBoundingClientRect(); me.classList.add("land"); }
+}
+
+/* v14_g: gör förflyttningen tydlig — ett färgat "resespår" ritas längs axeln i
+   färdriktningen (grönt framåt / rött bakåt), spelarsymbolen glöder i samma färg
+   under resan och möts av en färgad ankomstpuls. Så syns det VAD som hände och
+   OM det var bra eller dåligt. */
+function showTravel(fromPos, toPos, forward, card){
+  const TRAVEL = 1150; // långsammare resa (v14_i)
+  const y0 = yPct(fromPos), y1 = yPct(toPos);
+  const top = Math.min(y0, y1), h = Math.abs(y1 - y0);
+  const trail = document.createElement("div");
+  trail.className = "travel " + (forward ? "fwd" : "back");
+  trail.style.top = top + "%";
+  trail.style.height = h + "%";
+  trail.style.transformOrigin = forward ? "bottom" : "top"; // väx från startpunkten
+  trail.style.transform = "scaleY(0)";
+  axisEl.appendChild(trail);
+  requestAnimationFrame(() => {
+    trail.style.transition = "transform 1.15s cubic-bezier(.5,0,.3,1.05)";
+    trail.style.transform = "scaleY(1)";
+  });
+  setTimeout(() => { trail.style.transition = "opacity .5s ease"; trail.style.opacity = "0"; }, TRAVEL + 150);
+  setTimeout(() => trail.remove(), TRAVEL + 650);
+
+  const me = $("me");
+  me.classList.remove("mv-fwd", "mv-back");
+  void me.offsetWidth;
+  me.classList.add(forward ? "mv-fwd" : "mv-back");
+  setTimeout(() => {
+    me.classList.remove("mv-fwd", "mv-back");
+    const ring = document.createElement("div");
+    ring.className = "arrive-ring " + (forward ? "fwd" : "back");
+    ring.style.top = y1 + "%";
+    axisEl.appendChild(ring);
+    setTimeout(() => ring.remove(), 850);
+    // synkad glimt: symbolen och det valda kortet blinkar till samtidigt
+    me.classList.remove("glint"); void me.offsetWidth; me.classList.add("glint");
+    if (card){ card.classList.remove("glint"); void card.offsetWidth; card.classList.add("glint"); }
+    setTimeout(() => { me.classList.remove("glint"); if (card) card.classList.remove("glint"); }, 1250);
+  }, TRAVEL);
+}
+
+/* v14_h: optimalt antal hopp kvar till målet från nuvarande läge (klonar
+   staten och spelar optimalt). Efter ett bra kliv minskar det, efter ett
+   felkliv ökar det. */
+function remainingOptimal(){
+  const s = { rng:{a:S.rng.a}, start:S.start, goal:S.goal,
+              pool:S.pool.slice(), pos:S.pos,
+              used:S.used.slice(), dead:S.dead.slice(), shown:S.shown.slice() };
+  let hops = 0;
+  while (s.pos < s.goal[0] && hops < 80){
+    const p = drawPair(s);
+    if (!p) break;
+    applyChoice(s, p, p.a[0] > p.b[0] ? p.a : p.b);
+    hops++;
+  }
+  return hops;
+}
+
+/* v17_centrum: "Du är här!" bor i spelarens centrum (feedback-raden) och
+   en bläckkurva ritas därifrån till plaketten på axeln — samma formspråk
+   som svarslinjerna kort→plats. Kurvan tonar ut vid första valet. */
+let introPath = null, curEvent = null;
+function posHTML(){
+  // bara händelsen — året står redan på plaketten
+  return '<span class="fb-pos">' + curEvent[1] + '</span>';
+}
+function ensureIntroDefs(){
+  if (document.getElementById("introHead")) return;
+  connSvg.insertAdjacentHTML("afterbegin",
+    '<defs><marker id="introHead" viewBox="0 0 10 10" refX="7.5" refY="5" markerWidth="4.6" markerHeight="4.6" orient="auto-start-reverse">' +
+    '<path d="M1.5,1.5 L8.5,5 L1.5,8.5" fill="none" stroke="#1c5a66" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>');
+}
+function showIntro(){
+  fbEl.innerHTML = '<span id="fbIntro">You are here!</span>' + posHTML();
+  fbEl.className = "feedback show fwd";
+  if (introPath){ introPath.remove(); introPath = null; }
+  setTimeout(() => {
+    if (steps > 0 || busy) return;
+    // pilen utgår från HÄNDELSE-raden (inte "Du är här!"-texten):
+    // "Du är här!" syftar på händelsen, händelsen pekar på plaketten —
+    // och pilen slipper korsa händelsetexten
+    const t = fbEl.querySelector(".fb-pos");
+    if (!t) return;
+    ensureIntroDefs();
+    const bw = boardEl.getBoundingClientRect();
+    // OBS: .fb-pos är display:block och spänner hela kolumnen — mät därför
+    // SJÄLVA TEXTENS kant via en Range, annars ankras pilen i blockkanten
+    // (som kan ligga inne vid plaketten) och kurvan blir en krok bakom den
+    const rng = document.createRange();
+    rng.selectNodeContents(t);
+    const f = rng.getBoundingClientRect(), m = $("me").getBoundingClientRect();
+    if (!f.width || !m.width) return;
+    const x0 = f.left - bw.left - 7, y0 = f.top + f.height / 2 - bw.top;
+    const x1 = m.right - bw.left + 9, y1 = m.top + m.height / 2 - bw.top;
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    // Kurvan får inte korsa frågetexten (strax under centrum-raden) eller
+    // korten: den svänger av tidigt och dyker ner i axel-rännan, och landar
+    // på plakettens OVANSIDA (eller undersida om plaketten är ovanför) —
+    // hela nedfarten sker vänster om både fråga och kort. Kurvan är dessutom
+    // kortlivad (tonar ut efter 3 s), så en tillfällig korsning av en
+    // årtalsetikett gör inget.
+    const mx = (m.left + m.right) / 2 - bw.left;
+    let d;
+    if (m.top - bw.top > y0 + 34){        // plaketten under centrum-raden
+      d = "M" + x0 + "," + y0 + " Q" + mx + "," + y0 + " " + mx + "," + (m.top - bw.top - 6);
+    } else if (m.bottom - bw.top < y0 - 34){ // plaketten ovanför
+      d = "M" + x0 + "," + y0 + " Q" + mx + "," + y0 + " " + mx + "," + (m.bottom - bw.top + 6);
+    } else {                               // samma höjd — kort båge rakt in i sidan
+      d = "M" + x0 + "," + y0 + " Q" + (x0 + x1) / 2 + "," + y0 + " " + x1 + "," + y1;
+    }
+    path.setAttribute("d", d);
+    path.setAttribute("class", "conn-path melink");
+    path.setAttribute("marker-end", "url(#introHead)");
+    connSvg.appendChild(path);
+    const len = path.getTotalLength();
+    path.style.strokeDasharray = len;
+    path.style.strokeDashoffset = len;
+    path.getBoundingClientRect();
+    path.style.transition = "stroke-dashoffset .7s ease";
+    path.style.strokeDashoffset = "0";
+    path.classList.add("show");
+    introPath = path;
+    // pilen är en startgest — den tonar ut av sig själv efter 3 sekunder,
+    // och lämnar över till frågan som glimmar till: "svara på den här"
+    setTimeout(() => {
+      if (introPath !== path) return;
+      fadeConnector(introPath); introPath = null;
+      setTimeout(() => {
+        if (steps > 0 || busy) return;
+        [...cardsEl.children].forEach((c, i) => {
+          // OBS: klassen tas INTE bort efteråt — då återstartar kortets
+          // fadeIn-animation och kortet blinkar till. Korten byggs om
+          // varje runda, så klassen städas bort naturligt.
+          setTimeout(() => c.classList.add("beckon"), i * 240);
+        });
+      }, 350);
+    }, 3000);
+  }, 500);
+}
+
+/* =========================================================
+   DAILY-GAME LAYER — persistence, streak, share, countdown,
+   feedback, analytics. New for Daily Time Travel.
+   ========================================================= */
+const SITE_URL = "https://daily-time-travel.netlify.app";
+const STORAGE_KEY = "ttv_daily_v1";
+const EPOCH = new Date(2026, 6, 6); // day #1 — month is 0-indexed
+
+let _memStore = {};
+function loadStore(){
+  if (window.TT_TEST_MODE) return _memStore;
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch (e){ return {}; }
+}
+function saveStore(st){
+  if (window.TT_TEST_MODE){ _memStore = st; return; }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(st)); } catch (e){}
+}
+function dayNum(off){
+  const d = dateForOffset(off); d.setHours(12, 0, 0, 0);
+  const e = new Date(EPOCH); e.setHours(0, 0, 0, 0);
+  return Math.floor((d - e) / 86400000) + 1;
+}
+function savedResultFor(off){
+  if (off !== 0) return null;
+  return ((loadStore().days) || {})[dateKey(dateForOffset(0))] || null;
+}
+function getDayStreak(){
+  const days = (loadStore().days) || {};
+  let n = 0;
+  for (let off = 0; off > -3650; off--){
+    if (days[dateKey(dateForOffset(off))]) n++;
+    else if (off === 0) continue; // today not finished yet doesn't break the streak
+    else break;
+  }
+  return n;
+}
+function renderDailyStats(){
+  const days = (loadStore().days) || {};
+  const played = Object.keys(days).length;
+  if (!played){ $("dstats").innerHTML = ""; return; }
+  const perfect = Object.values(days).filter(d => d.h <= d.par).length;
+  $("dstats").innerHTML =
+    '<div class="box"><div class="num">' + played + '</div><div class="lab">Played</div></div>' +
+    '<div class="box"><div class="num gold">' + getDayStreak() + '</div><div class="lab">Day streak</div></div>' +
+    '<div class="box"><div class="num">' + perfect + '</div><div class="lab">Perfect</div></div>';
+}
+
+/* Analytics — GoatCounter custom events, with a queue for events that fire
+   before count.js has loaded. Test mode + own devices send nothing. */
+window._gcQueue = window._gcQueue || [];
+function _gcSend(p){ try { window.goatcounter.count(p); } catch (e){} }
+(function _gcWait(){
+  let tries = 0;
+  const t = setInterval(function(){
+    if (window.goatcounter && typeof window.goatcounter.count === "function"){
+      clearInterval(t);
+      while (window._gcQueue.length) _gcSend(window._gcQueue.shift());
+    } else if (++tries > 100) clearInterval(t);
+  }, 100);
+})();
+function trackEvent(name, title){
+  if (window.TT_TEST_MODE || window.TT_OWN_DEVICE) return;
+  const p = { path: "event/" + name, title: title || name, event: true };
+  if (window.goatcounter && typeof window.goatcounter.count === "function") _gcSend(p);
+  else window._gcQueue.push(p);
+}
+
+function showToast(msg){
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(showToast._t); showToast._t = setTimeout(() => t.classList.remove("show"), 2200);
+}
+function shareResult(){
+  const trail = history.map(h => h.correct ? "\u{1F7E2}" : "\u{1F534}").join("");
+  const streakD = getDayStreak();
+  const textNoUrl = "\u23F3 Daily Time Travel #" + dayNum(dayOffset) + "\n" +
+    fmtYear(S.start[0]) + " \u2192 " + fmtYear(S.goal[0]) + " \u00B7 " +
+    steps + (steps === 1 ? " hop" : " hops") + " (par " + optimal + ")\n" +
+    trail + (streakD > 1 ? "\nStreak: " + streakD + " days" : "");
+  const full = textNoUrl + "\n" + SITE_URL;
+  if (navigator.share){
+    navigator.share({ title: "Daily Time Travel", text: textNoUrl, url: SITE_URL })
+      .then(() => trackEvent("tt_share_native", "TT shared (native)"))
+      .catch(err => { if (err && err.name === "AbortError") return; copyShare(full); });
+  } else copyShare(full);
+}
+function copyShare(t){
+  trackEvent("tt_share_copy", "TT result copied");
+  navigator.clipboard.writeText(t).then(() => showToast("Copied — paste it anywhere!"))
+    .catch(() => showToast("Could not copy"));
+}
+
+let cdTimer = null;
+function startCountdown(){
+  const el = $("countdown");
+  clearInterval(cdTimer);
+  if (dayOffset !== 0){ el.innerHTML = ""; return; }
+  function tick(){
+    const now = new Date();
+    const mid = new Date(now); mid.setHours(24, 0, 0, 0);
+    const s = Math.max(0, Math.floor((mid - now) / 1000));
+    if (s <= 0){
+      el.innerHTML = "<b>A new journey is ready!</b> Reload to play.";
+      clearInterval(cdTimer); return;
+    }
+    const pad = x => String(x).padStart(2, "0");
+    el.innerHTML = "Next journey in <b>" + pad(Math.floor(s / 3600)) + ":" +
+      pad(Math.floor(s % 3600 / 60)) + ":" + pad(s % 60) + "</b>";
+  }
+  tick(); cdTimer = setInterval(tick, 1000);
+}
+
+function openFeedback(){
+  trackEvent("tt_feedback_opened", "TT feedback opened");
+  $("fbText").value = "";
+  $("fbOverlay").classList.add("show");
+  setTimeout(() => $("fbText").focus(), 250);
+}
+function sendFeedback(){
+  const msg = $("fbText").value.trim();
+  if (!msg){ $("fbOverlay").classList.remove("show"); return; }
+  $("fbSend").disabled = true;
+  fetch("https://api.web3forms.com/submit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Accept": "application/json" },
+    body: JSON.stringify({
+      access_key: "0366d42b-23ad-49d6-b2c2-49659908e0c6",
+      subject: "Daily Time Travel feedback (day #" + dayNum(dayOffset) + ")",
+      from_name: "Daily Time Travel",
+      message: msg
+    })
+  }).then(r => {
+    $("fbSend").disabled = false;
+    $("fbOverlay").classList.remove("show");
+    showToast(r.ok ? "Thank you!" : "Could not send — try again later");
+    if (r.ok) trackEvent("tt_feedback_sent", "TT feedback sent");
+  }).catch(() => {
+    $("fbSend").disabled = false;
+    showToast("Could not send — try again later");
+  });
+}
+
+function newGame(offset, opts){
+  dayOffset = offset === undefined ? dayOffset : offset;
+  const seed = seedForOffset(dayOffset);
+  optimal = playOptimal(seed);
+  S = makeState(seed);
+  curEvent = S.start;
+  steps = 0; wrongs = 0; streak = 0; history = []; busy = false;
+  $("steps").textContent = 0; $("wrongs").textContent = 0; $("streak").textContent = 0;
+  $("optimal").textContent = optimal + (optimal === 1 ? " hop" : " hops");
+  setYearNow(S.pos);
+  $("dayLab").textContent = "Journey #" + dayNum(dayOffset) + " · " +
+    dateForOffset(dayOffset).toLocaleDateString("en-US", { month: "long", day: "numeric" });
+  $("jbStart").textContent = S.start[1] + " (" + fmtYear(S.start[0]) + ")";
+  $("jbEnd").textContent = fmtYear(S.goal[0]);
+  $("overlay").classList.remove("show");
+  document.querySelectorAll(".confetti").forEach(c => c.remove());
+  connSvg.innerHTML = "";
+  var _nf = document.getElementById("nextFab"); if (_nf) _nf.classList.remove("show");
+  buildAxis();
+  moveMe(false);
+  const saved = savedResultFor(dayOffset);
+  if (saved && !(opts && opts.replay)){
+    restoreFinished(saved);
+    return;
+  }
+  nextRound();
+  showIntro();
+}
+
+/* Already finished today (e.g. reopened the page): put the traveler at the
+   goal and show the saved result — "Play again" replays without overwriting. */
+function restoreFinished(saved){
+  steps = saved.h; wrongs = saved.w;
+  history = saved.route.map(r => ({ year: r[0], text: r[1], correct: !!r[2], forward: true }));
+  $("steps").textContent = steps; $("wrongs").textContent = wrongs;
+  S.pos = S.goal[0]; curEvent = S.goal;
+  setYearNow(S.pos);
+  moveMe(false);
+  fbEl.innerHTML = "You've arrived!" + posHTML();
+  fbEl.className = "feedback show fwd";
+  showResultPanel(true);
+}
+
+function nextRound(){
+  pair = drawPair(S);
+  if (!pair){
+    S.pos = S.goal[0];
+    curEvent = S.goal;
+    moveMe(true);
+    win();
+    return;
+  }
+  showCandidates();
+  // centrum-raden rensas inte — senaste instruktionen står kvar tills nästa val
+  const order = Math.random() < .5 ? [pair.a, pair.b] : [pair.b, pair.a];
+  cardsEl.className = "cards";
+  cardsEl.innerHTML = "";
+  order.forEach((ev, idx) => {
+    const b = document.createElement("button");
+    b.className = "card";
+    b.style.animationDelay = (idx * .07) + "s";
+    b.innerHTML =
+      '<span class="event">' + ev[1] + '</span>' +
+      '<span class="reveal-row"><span class="year">' + fmtYear(ev[0]) + '</span></span>' +
+      '<span class="badge"></span>';
+    b._year = ev[0];
+    b.onclick = () => choose(ev);
+    cardsEl.appendChild(b);
+  });
+}
+
+function choose(ev){
+  if (busy) return; busy = true;
+  if (introPath){ fadeConnector(introPath); introPath = null; }
+  cardsEl.classList.add("locked");
+  const other = ev === pair.a ? pair.b : pair.a;
+  const oldPos = S.pos;
+  const forward = ev[0] > oldPos;        // direction we travel
+  const correct = ev[0] > other[0];      // the factually right answer
+  if (!window._ttStep1Sent){ window._ttStep1Sent = true; trackEvent("tt_step1", "TT first hop"); }
+  const chosenSlot = slotEls.get(ev), otherSlot = slotEls.get(other);
+  applyChoice(S, pair, ev);
+  steps++;
+  if (correct){ streak++; } else { wrongs++; streak = 0; }
+  $("steps").textContent = steps; $("wrongs").textContent = wrongs; $("streak").textContent = streak;
+  if (correct && streak > 1){
+    const chip = $("streakChip");
+    chip.classList.remove("pop"); chip.getBoundingClientRect(); chip.classList.add("pop");
+  }
+  history.push({ year: ev[0], text: ev[1], forward, correct });
+  curEvent = ev;
+
+  let chosenCard = null, otherCard = null;
+  [...cardsEl.children].forEach(c => {
+    if (c._year === ev[0]){
+      c.classList.add(correct ? "fwd" : "back");
+      const bd = c.querySelector(".badge"); if (bd) bd.textContent = correct ? "\u2713" : "\u2715";
+      chosenCard = c;
+    }
+    else otherCard = c;
+  });
+
+  // v14_h: ditt landningsår står i den STORA siffran (rullar med symbolen), så
+  // året visas bara på DET ANDRA kortet. Ingen "X år framåt/bakåt" — texten under
+  // siffran berättar i stället hur många steg som är kvar till målet.
+  setTimeout(() => {
+    // inga årtal/etiketter i knapparna — bara färg + bock/kryss på korten
+    if (chosenSlot){
+      chosenSlot.className = "slot-mark resolved " + (forward ? "fwd" : "back");
+      chosenSlot.parentElement.classList.add("resolved");
+    }
+    // plaketten landar exakt på det valda året och visar samma siffra —
+    // tona ut kandidatetiketten så det inte blir dubblerat/rörigt
+    const chosenLab = slotLabEls.get(ev);
+    if (chosenLab){ chosenLab.style.transition = "opacity .4s ease .75s"; chosenLab.style.opacity = "0"; }
+    if (otherSlot){
+      otherSlot.className = "slot-mark resolved other";
+      otherSlot.parentElement.classList.add("resolved");
+    }
+    showTravel(oldPos, S.pos, forward, chosenCard);
+    moveMe(true);
+    // valpil (som i tidiga versioner): linje från valda kortet till platsen
+    // på axeln dit vi reser — valet styr vart vi åker. Tonar ut efter resan.
+    const chConn = drawConnector(chosenCard, chosenSlot, forward ? "correct" : "wrong");
+    setTimeout(() => fadeConnector(chConn), 2000);
+    tickYear(oldPos, S.pos, 1150);          // siffran rullar samtidigt som symbolen åker
+    if (S.pos >= S.goal[0]){
+      // framme — ingen Nästa-knapp, gå direkt till slutskärmen efter ankomsten
+      fbEl.innerHTML = "You've arrived!" + posHTML();
+      fbEl.className = "feedback show fwd";
+      busy = false;
+      setTimeout(win, 2300);
+    } else {
+      const left = remainingOptimal();
+      const hopsWord = left === 1 ? "hop" : "hops";
+      if (!correct){
+        fbEl.innerHTML = (forward ? "Not quite!" : "Wrong \u2014 back in time!") +
+          " <b>" + left + "</b> " + hopsWord + " to go." + posHTML();
+        fbEl.className = "feedback show back";
+      } else {
+        fbEl.innerHTML = "Right! <b>" + left + "</b> " + hopsWord + " to go." + posHTML();
+        fbEl.className = "feedback show fwd";
+      }
+      setTimeout(() => $("nextFab").classList.add("show"), 1300);
+    }
+  }, 480);
+
+  if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(forward ? 15 : [10, 40, 30]);
+}
+
+function tickYear(from, to, dur){
+  const t0 = performance.now();
+  function frame(t){
+    const k = Math.min(1, (t - t0) / dur);
+    const e = 1 - Math.pow(1 - k, 3);
+    let v = Math.round(from + (to - from) * e); if (v === 0) v = 1;
+    setYearNow(v);
+    if (k < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+function win(){
+  if (dayOffset === 0 && !window.TT_PREVIEW_MODE && !savedResultFor(0)){
+    const st = loadStore(); st.days = st.days || {};
+    st.days[dateKey(dateForOffset(0))] = {
+      h: steps, w: wrongs, par: optimal,
+      route: history.map(h => [h.year, h.text, h.correct ? 1 : 0])
+    };
+    saveStore(st);
+    trackEvent("tt_won", "TT journey won");
+    if (steps <= optimal) trackEvent("tt_perfect", "TT perfect journey");
+  }
+  showResultPanel(false);
+}
+function showResultPanel(restored){
+  $("goalName").textContent = S.goal[1];
+  $("finalYear").textContent = fmtYearLong(S.goal[0]);
+  $("cmpYou").textContent = steps;
+  $("cmpBest").textContent = optimal;
+  $("resultDots").innerHTML = history.map((h, i) =>
+    '<span class="' + (h.correct ? "" : "back") + '" style="animation-delay:' + (i * .1) + 's"></span>'
+  ).join("");
+  const over = steps - optimal;
+  $("finalText").innerHTML =
+    over <= 0
+      ? "<b>Perfect journey!</b> You couldn't have gotten there faster."
+      : "You were " + over + (over === 1 ? " hop" : " hops") + " over par" +
+        (wrongs ? " and took <b>" + wrongs + (wrongs === 1 ? " wrong turn" : " wrong turns") + "</b> back in time." : ".");
+  // Same direction as the in-game axis: latest event on top, "journey begins"
+  // at the bottom — hence the reversed route list.
+  $("route").innerHTML =
+    ['<div class="row"><span class="y">' + fmtYear(S.start[0]) + '</span><span>' + S.start[1] + ' — journey begins</span></div>']
+      .concat(history.map(h =>
+        '<div class="row' + (h.correct ? "" : " back") + '"><span class="y">' + fmtYear(h.year) + '</span><span>' + h.text + '</span></div>'
+      ))
+      .reverse().join("");
+  renderDailyStats();
+  startCountdown();
+  $("btnNextDay").style.display = window.TT_TEST_MODE ? "" : "none";
+  $("overlay").classList.add("show");
+  if (restored) return; // no confetti when just re-opening the page
+  for (let i = 0; i < 26; i++){
+    const c = document.createElement("div");
+    c.className = "confetti";
+    c.style.left = Math.random() * 100 + "vw";
+    const cols = ["#41754a", "#a2751c", "#ab4028"];
+    c.style.background = "linear-gradient(180deg,transparent,#e9dec4," + cols[i % 3] + ",transparent)";
+    c.style.animationDuration = 1.6 + Math.random() * 1.4 + "s";
+    c.style.animationDelay = Math.random() * .9 + "s";
+    document.body.appendChild(c);
+  }
+}
+
+$("btnNextDay").onclick = () => newGame(dayOffset + 1, { replay: true });
+$("btnReplay").onclick = () => { trackEvent("tt_replay", "TT play again"); newGame(dayOffset, { replay: true }); };
+$("btnShare").onclick = shareResult;
+$("fbLink").onclick = e => { e.preventDefault(); openFeedback(); };
+$("fbSend").onclick = sendFeedback;
+$("fbCancel").onclick = () => $("fbOverlay").classList.remove("show");
+$("fbOverlay").onclick = e => { if (e.target === $("fbOverlay")) $("fbOverlay").classList.remove("show"); };
+document.getElementById("nextFab").onclick = () => {
+  $("nextFab").classList.remove("show");
+  busy = false;
+  if (S.pos >= S.goal[0]) win();
+  else nextRound();
+};
+if (window.TT_TEST_MODE){
+  const tb = document.createElement("div");
+  tb.className = "test-badge";
+  tb.textContent = window.TT_PREVIEW_MODE ? "TOMORROW" : "TEST";
+  document.body.appendChild(tb);
+}
+makeEmbers();
+newGame(window.TT_PREVIEW_MODE ? 1 : 0);
+</script>
+</body>
+</html>
