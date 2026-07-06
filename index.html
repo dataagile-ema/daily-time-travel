@@ -990,6 +990,52 @@ function dateKey(d){ return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d
    ]
    ========================================================= */
 const SPEC_JOURNEYS = {
+  // Launch week — hand-picked journeys with famous, era-anchored events.
+  // 9 events, oldest → newest; roles [T2,T1,B1,S0,B2,C1,B3,C2,GOAL].
+  "2026-7-6": [ // The Titanic → the Moon
+    [1889, "The Eiffel Tower is inaugurated"],
+    [1896, "The first modern Olympics in Athens"],
+    [1903, "The Wright brothers' first flight"],
+    [1912, "The Titanic sinks"],
+    [1928, "Penicillin is discovered"],
+    [1929, "The Wall Street Crash"],
+    [1941, "The attack on Pearl Harbor"],
+    [1945, "The atomic bomb is dropped on Hiroshima"],
+    [1969, "The Moon landing"]
+  ],
+  "2026-7-7": [ // The Great Pyramid → the founding of Rome
+    [-3500, "The wheel is invented in Mesopotamia"],
+    [-3300, "The Bronze Age begins"],
+    [-3200, "Hieroglyphic writing begins in Egypt"],
+    [-2560, "The Great Pyramid of Giza is built"],
+    [-1754, "Hammurabi's code of laws is written"],
+    [-1323, "Tutankhamun is buried"],
+    [-1200, "The Trojan War, according to legend"],
+    [-776, "The first ancient Olympic Games"],
+    [-753, "Rome is founded, according to legend"]
+  ],
+  "2026-7-8": [ // Gutenberg → Galileo
+    [1320, "Dante completes the Divine Comedy"],
+    [1347, "The Black Death reaches Europe"],
+    [1431, "Joan of Arc is burned at the stake"],
+    [1440, "Gutenberg's printing press"],
+    [1453, "The fall of Constantinople"],
+    [1492, "Columbus reaches America"],
+    [1503, "Leonardo begins painting the Mona Lisa"],
+    [1517, "Martin Luther posts his 95 theses"],
+    [1609, "Galileo points his telescope at the sky"]
+  ],
+  "2026-7-9": [ // The Moon landing → the iPhone
+    [1953, "The structure of DNA is discovered"],
+    [1957, "Sputnik 1 is launched"],
+    [1962, "The Cuban Missile Crisis"],
+    [1969, "The Moon landing"],
+    [1977, "Star Wars premieres"],
+    [1989, "The fall of the Berlin Wall"],
+    [1991, "The World Wide Web opens to the public"],
+    [1998, "Google is founded"],
+    [2007, "The iPhone is launched"]
+  ]
 };
 
 function journeyForOffset(off, depth){
