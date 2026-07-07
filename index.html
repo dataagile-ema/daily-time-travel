@@ -1657,6 +1657,7 @@ function win(){
     };
     saveStore(st);
     trackEvent("tt_won", "TT journey won");
+    trackEvent("tt_result_" + steps, "TT result: " + steps + " hops");
     if (steps <= optimal) trackEvent("tt_perfect", "TT perfect journey");
   }
   showResultPanel(false);
