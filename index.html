@@ -1832,7 +1832,12 @@ function newGame(offset, opts){
    goal and show the saved result — "Play again" replays without overwriting. */
 function restoreFinished(saved){
   steps = saved.h; wrongs = saved.w;
-  history = saved.route.map(r => ({ year: r[0], text: r[1], correct: !!r[2], forward: true }));
+  // Look up the text in the current language's event list (the result may have
+  // been played in the other language); fall back to the stored text.
+  history = saved.route.map(r => {
+    const ev = EVENTS.find(e => e[0] === r[0]);
+    return { year: r[0], text: ev ? ev[1] : r[1], correct: !!r[2], forward: true };
+  });
   $("steps").textContent = steps; $("wrongs").textContent = wrongs;
   S.pos = S.goal[0]; cur = J.goal; curEvent = S.goal;
   setYearNow(S.pos);
