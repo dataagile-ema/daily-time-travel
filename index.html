@@ -436,6 +436,12 @@ header h1::after{
 @keyframes fall{to{transform:translate(22vw,110vh) rotate(16deg);opacity:.1}}
 
 /* ---- Daily-game additions ---- */
+.lang-pill{position:fixed;top:10px;left:10px;z-index:45;
+  font-family:var(--mono);font-weight:700;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text-dim);background:var(--paper);border:1px solid var(--border-hover);border-radius:999px;
+  padding:4px 10px;text-decoration:none;box-shadow:1px 1px 0 rgba(36,28,16,.14)}
+.lang-pill:hover{color:var(--ink);border-color:var(--accent)}
+
 .result-screen{display:none}
 .result-screen.show{display:block;animation:fadeIn .5s ease both}
 .panel-inline{width:100%;max-width:none;max-height:none;overflow:visible;
@@ -488,7 +494,18 @@ header h1{font-size:1.92rem}
 
 </style>
 <!-- Test mode (/test) and preview mode (/tomorrow): no analytics at all. -->
+<link rel="alternate" hreflang="en" href="https://daily-time-travel.netlify.app/">
+<link rel="alternate" hreflang="sv" href="https://daily-time-travel.netlify.app/sv">
 <script>
+  window.TT_LANG = (/^\/sv(\/|$)/i.test(window.location.pathname) ||
+                    /[?&]lang=sv/i.test(window.location.search)) ? "sv" : "en";
+  document.documentElement.lang = window.TT_LANG;
+  try {
+    // spara språkval; skicka rot-besökare som valt svenska till /sv
+    if (window.TT_LANG === "sv") localStorage.setItem("ttv_lang", "sv");
+    else if (window.location.pathname === "/" && localStorage.getItem("ttv_lang") === "sv")
+      window.location.replace("/sv");
+  } catch (e) { /* localStorage otillgänglig — kör vidare på engelska */ }
   window.TT_TEST_MODE = /\/(test|tomorrow)(\/|$)/i.test(window.location.pathname);
   window.TT_PREVIEW_MODE = /\/(tomorrow)(\/|$)/i.test(window.location.pathname);
   window.TT_OWN_DEVICE = false;
@@ -610,10 +627,41 @@ header h1{font-size:1.92rem}
 /* =========================================================
    SPELMOTOR — identisk logik med v1/v2/v6, oförändrad.
    ========================================================= */
+const LANG = window.TT_LANG || "en";
+const EV = LANG === "sv" ? "tt_sv_" : "tt_";   // analytics-prefix per språk
+const T = LANG === "sv" ? {
+  here: "Du är här!", arrived: "Framme!",
+  right: "Rätt!", wrongBack: "Fel \u2014 bakåt i tiden!", notQuite: "Inte riktigt!",
+  toGo: "kvar.", hop: "hopp", hops: "hopp",
+  goalLab: "MÅL · ", journeyWord: "Resa #", locale: "sv-SE",
+  perfect: "<b>Perfekt resa!</b> Det gick inte att komma fram snabbare.",
+  youWere: "Du var ", overPar: " över par", andTook: " och tog <b>", backInTime: "</b> felkliv bakåt i tiden.",
+  wrongTurn: "", wrongTurns: "",
+  begins: " \u2014 resan börjar",
+  played: "Spelade", dayStreak: "Dagssvit", perfectLab: "Perfekta",
+  nextIn: "Nästa resa om", ready: "<b>En ny resa väntar!</b> Ladda om sidan.",
+  streakLine: "\nSvit: ", daysWord: " dagar",
+  copied: "Kopierat \u2014 klistra in var du vill!", copyFail: "Kunde inte kopiera",
+  thanks: "Tack!", sendFail: "Gick inte att skicka \u2014 försök igen senare"
+} : {
+  here: "You are here!", arrived: "You've arrived!",
+  right: "Right!", wrongBack: "Wrong \u2014 back in time!", notQuite: "Not quite!",
+  toGo: "to go.", hop: "hop", hops: "hops",
+  goalLab: "GOAL · ", journeyWord: "Journey #", locale: "en-US",
+  perfect: "<b>Perfect journey!</b> You couldn't have gotten there faster.",
+  youWere: "You were ", overPar: " over par", andTook: " and took <b>", backInTime: "</b> back in time.",
+  wrongTurn: " wrong turn", wrongTurns: " wrong turns",
+  begins: " \u2014 journey begins",
+  played: "Played", dayStreak: "Day streak", perfectLab: "Perfect",
+  nextIn: "Next journey in", ready: "<b>A new journey is ready!</b> Reload to play.",
+  streakLine: "\nStreak: ", daysWord: " days",
+  copied: "Copied \u2014 paste it anywhere!", copyFail: "Could not copy",
+  thanks: "Thank you!", sendFail: "Could not send \u2014 try again later"
+};
 const PAR = 3;
 const THIS_YEAR = 2026;
 
-const EVENTS = [
+const EVENTS_EN = [
   [-3500, "The wheel is invented in Mesopotamia"],
   [-3300, "The Bronze Age begins"],
   [-3200, "Hieroglyphic writing begins in Egypt"],
@@ -895,7 +943,299 @@ const EVENTS = [
   [2024, "The Summer Olympics in Paris"]
 ];
 
-const fmtYear = y => y < 0 ? Math.abs(y).toLocaleString("en-US") + " BC" : (y < 1000 ? "AD " + y : "" + y);
+/* Svenska texter — ordbok per årtal. ENGELSKA LISTAN ÄR KÄLLAN till vilka
+   händelser som finns: saknas ett årtal här visas den engelska texten.
+   Byts en händelses INNEBÖRD i EN-listan (samma årtal) — uppdatera samma
+   årtal här, annars visar svenskan den gamla texten. */
+const SV_TEXTS = {
+  "-3500": "Hjulet uppfinns i Mesopotamien",
+  "-3300": "Bronsåldern börjar",
+  "-3200": "Hieroglyfer börjar användas i Egypten",
+  "-2560": "Cheopspyramiden i Giza byggs",
+  "-2500": "Stonehenge fullbordas",
+  "-2350": "Noas ark och syndafloden",
+  "-2334": "Akkadiska riket — världens första imperium",
+  "-2200": "Babels torn",
+  "-1900": "Abrahams kallelse",
+  "-1754": "Hammurabis lagar nedtecknas",
+  "-1700": "Josef säljs till Egypten",
+  "-1446": "Israels uttåg ur Egypten",
+  "-1323": "Tutankhamon begravs",
+  "-1279": "Ramses den store blir farao i Egypten",
+  "-1200": "Trojanska kriget enligt sägnen",
+  "-1050": "Saul blir Israels förste kung",
+  "-1010": "David blir kung över Israel",
+  "-966": "Salomo bygger templet i Jerusalem",
+  "-814": "Fenicierna grundar Karthago i Nordafrika",
+  "-776": "Antikens första olympiska spel",
+  "-753": "Rom grundas enligt sägnen",
+  "-750": "Homeros diktar Iliaden",
+  "-586": "Babyloniska fångenskapen börjar",
+  "-563": "Buddha föds",
+  "-559": "Kyros den store grundar Persiska riket",
+  "-551": "Konfucius föds",
+  "-530": "Pythagoras formulerar sin sats",
+  "-509": "Romerska republiken grundas",
+  "-508": "Atenska demokratin föds under Kleisthenes",
+  "-490": "Slaget vid Marathon",
+  "-432": "Parthenon färdigställs i Aten",
+  "-399": "Sokrates döms till döden i Aten",
+  "-390": "Gallerna plundrar Rom",
+  "-387": "Platon grundar Akademin i Aten",
+  "-335": "Aristoteles grundar Lykeion i Aten",
+  "-331": "Alexander den store erövrar Persien",
+  "-240": "Eratosthenes mäter jordens omkrets",
+  "-218": "Hannibal tågar över Alperna",
+  "-214": "Kinesiska muren börjar byggas",
+  "-196": "Rosettastenen huggs i Egypten",
+  "-146": "Karthago förstörs",
+  "-73": "Spartacus leder slavupproret",
+  "-44": "Julius Caesar mördas",
+  "-30": "Kleopatra dör",
+  "-27": "Augustus grundar romerska kejsardömet",
+  "1": "Jesu födelse",
+  "70": "Romarna förstör Jerusalems tempel",
+  "79": "Vesuvius utbrott begraver Pompeji",
+  "80": "Colosseum invigs",
+  "95": "Uppenbarelseboken skrivs på Patmos",
+  "105": "Pappret uppfinns i Kina",
+  "122": "Hadrianus mur byggs i Britannien",
+  "175": "Marcus Aurelius skriver Självbetraktelser",
+  "313": "Kristendomen tillåts i Romarriket",
+  "325": "Konciliet i Nicaea",
+  "330": "Konstantin den store grundar Konstantinopel",
+  "395": "Romarriket delas i öst och väst",
+  "410": "Rom plundras av visigoterna",
+  "451": "Attila invaderar Gallien",
+  "476": "Västroms fall",
+  "537": "Hagia Sofia står färdig",
+  "622": "Hijra — Muhammeds färd till Medina",
+  "632": "Muhammed dör — islam etableras",
+  "651": "Araberna erövrar Persien",
+  "793": "Vikingar plundrar Lindisfarne",
+  "800": "Karl den store kröns till kejsare",
+  "820": "Al-Khwarizmi grundlägger algebran",
+  "850": "Krutet uppfinns i Kina",
+  "962": "Otto I kröns till tysk-romersk kejsare",
+  "1000": "Leif Eriksson når Vinland",
+  "1040": "Macbeth blir kung av Skottland",
+  "1054": "Stora schismen delar kyrkan",
+  "1066": "Vilhelm Erövraren invaderar England",
+  "1088": "Universitetet i Bologna grundas",
+  "1095": "Påven utlyser första korståget",
+  "1099": "Korsfararna erövrar Jerusalem",
+  "1119": "Tempelherreorden grundas",
+  "1140": "Gotiken föds i Frankrike",
+  "1163": "Notre-Dame börjar byggas i Paris",
+  "1180": "Vindmöllor sprids i nordvästra Europa",
+  "1190": "Sjökompassen når Europa",
+  "1206": "Djingis khan grundar mongolväldet",
+  "1215": "Magna Carta undertecknas",
+  "1241": "Mongolerna når Europa",
+  "1258": "Bagdad förstörs av mongolerna",
+  "1271": "Marco Polo ger sig av mot Kina",
+  "1275": "Marco Polo möter Kublai khan",
+  "1286": "Glasögonen uppfinns i Italien",
+  "1320": "Dante fullbordar Den gudomliga komedin",
+  "1325": "Aztekerna grundar Tenochtitlán i en sjö",
+  "1335": "Mekaniska tornur börjar slå i Europa",
+  "1337": "Hundraåriga kriget börjar",
+  "1347": "Digerdöden når Europa",
+  "1387": "Chaucer börjar skriva Canterburysägnerna",
+  "1400": "Renässansen börjar i Italien",
+  "1431": "Jeanne d'Arc bränns på bål",
+  "1436": "Brunelleschi fullbordar domkupolen i Florens",
+  "1440": "Gutenbergs tryckpress",
+  "1453": "Konstantinopels fall",
+  "1478": "Spanska inkvisitionen inrättas",
+  "1492": "Columbus når Amerika",
+  "1497": "Leonardo målar Nattvarden",
+  "1498": "Vasco da Gama når Indien sjövägen",
+  "1503": "Leonardo börjar måla Mona Lisa",
+  "1508": "Michelangelo börjar måla Sixtinska kapellets tak",
+  "1513": "Machiavelli skriver Fursten",
+  "1517": "Martin Luther spikar upp sina 95 teser",
+  "1519": "Cortés landstiger i Mexiko",
+  "1522": "Magellans expedition seglar jorden runt",
+  "1526": "Babur grundar Mogulriket i Indien",
+  "1543": "Kopernikus publicerar att jorden kretsar kring solen",
+  "1558": "Elisabet I blir Englands drottning",
+  "1564": "William Shakespeare föds",
+  "1576": "Tycho Brahe bygger sitt ö-observatorium Uraniborg",
+  "1601": "Shakespeare skriver Hamlet",
+  "1602": "Holländska Ostindiska kompaniet grundas",
+  "1605": "Cervantes ger ut Don Quijote",
+  "1607": "Jamestown — den första varaktiga engelska kolonin i Amerika",
+  "1609": "Galileo riktar sitt teleskop mot himlen",
+  "1618": "Trettioåriga kriget börjar",
+  "1620": "Mayflower anländer till Amerika",
+  "1628": "Regalskeppet Vasa sjunker på sin jungfrufärd",
+  "1633": "Galileo döms av inkvisitionen",
+  "1636": "Harvard grundas",
+  "1637": "Descartes ger ut Avhandling om metoden",
+  "1642": "Rembrandt målar Nattvakten",
+  "1649": "Karl I avrättas i England",
+  "1653": "Taj Mahal står färdigt",
+  "1666": "Londons stora brand",
+  "1676": "Mikroskopet avslöjar bakterierna",
+  "1682": "Ludvig XIV flyttar hovet till Versailles",
+  "1687": "Newton publicerar Principia",
+  "1707": "England och Skottland förenas till Storbritannien",
+  "1714": "Fahrenheit uppfinner kvicksilvertermometern",
+  "1719": "Robinson Crusoe ges ut",
+  "1726": "Gullivers resor ges ut",
+  "1735": "Linné publicerar Systema Naturae",
+  "1751": "Encyclopédien börjar ges ut",
+  "1752": "Benjamin Franklin flyger sin drake i åskvädret",
+  "1758": "Halleys komet återvänder som förutspått",
+  "1769": "Watt patenterar sin förbättrade ångmaskin",
+  "1770": "James Cook når Australien",
+  "1773": "Tebjudningen i Boston",
+  "1776": "Amerikanska självständighetsförklaringen",
+  "1781": "Herschel upptäcker Uranus",
+  "1787": "USA:s konstitution antas",
+  "1789": "Franska revolutionen börjar",
+  "1791": "Mozart dör",
+  "1793": "Ludvig XVI giljotineras",
+  "1796": "Edward Jenners smittkoppsvaccin",
+  "1798": "Napoleon invaderar Egypten",
+  "1800": "Volta uppfinner batteriet",
+  "1804": "Napoleon kröner sig själv till kejsare",
+  "1805": "Slaget vid Trafalgar",
+  "1807": "Storbritannien förbjuder slavhandeln",
+  "1808": "Beethovens femte symfoni uruppförs",
+  "1812": "Napoleon invaderar Ryssland",
+  "1815": "Napoleon besegras vid Waterloo",
+  "1818": "Mary Shelley skriver Frankenstein",
+  "1821": "Greklands frihetskrig mot osmanerna",
+  "1824": "Beethovens nionde symfoni uruppförs",
+  "1825": "Världens första ångdrivna järnväg öppnar (Stockton–Darlington)",
+  "1826": "Världens första fotografi tas",
+  "1831": "Darwin seglar ut med HMS Beagle",
+  "1835": "H.C. Andersen ger ut sina första sagor",
+  "1837": "Babbage konstruerar den mekaniska analysmaskinen",
+  "1839": "Daguerre presenterar fotografiet",
+  "1844": "Morse skickar sitt första telegram",
+  "1846": "Narkos används vid operation för första gången",
+  "1848": "Kommunistiska manifestet ges ut",
+  "1850": "Massutvandringen till Amerika tar fart",
+  "1854": "Florence Nightingale reformerar sjukvården i Krimkriget",
+  "1859": "Darwins Om arternas uppkomst",
+  "1861": "Amerikanska inbördeskriget börjar",
+  "1862": "Pasteur uppfinner pastöriseringen",
+  "1863": "Engelska fotbollsförbundet FA grundas",
+  "1865": "Slaveriet avskaffas i USA",
+  "1867": "Alfred Nobel uppfinner dynamiten",
+  "1869": "Suezkanalen invigs",
+  "1871": "Stanley finner Livingstone — \"Dr Livingstone, förmodar jag?\"",
+  "1876": "Telefonen uppfinns",
+  "1877": "De första Wimbledonmästerskapen",
+  "1879": "Edisons glödlampa",
+  "1883": "Nietzsche ger ut Så talade Zarathustra",
+  "1886": "Karl Benz patenterar den första bilen",
+  "1889": "Eiffeltornet invigs",
+  "1890": "Hollerith räknar USA:s folkräkning med hålkort",
+  "1892": "Tjajkovskijs Nötknäpparen har premiär",
+  "1894": "Pierre de Coubertin grundar IOK",
+  "1895": "Bröderna Lumières första offentliga filmvisning",
+  "1896": "De första moderna olympiska spelen i Aten",
+  "1898": "Marie Curie upptäcker radioaktiviteten",
+  "1900": "Boxarupproret i Kina",
+  "1901": "De första Nobelprisen delas ut",
+  "1903": "Bröderna Wrights första flygning",
+  "1905": "Einsteins speciella relativitetsteori",
+  "1908": "Ford lanserar T-Forden",
+  "1910": "Mexikanska revolutionen",
+  "1911": "Amundsen når Sydpolen",
+  "1912": "Titanic sjunker",
+  "1913": "Stravinskijs Våroffer har urpremiär",
+  "1914": "Första världskriget börjar",
+  "1917": "Ryska revolutionen",
+  "1918": "Spanska sjukan bryter ut",
+  "1919": "Versaillesfreden undertecknas",
+  "1920": "Ordet \"robot\" myntas i pjäsen R.U.R.",
+  "1922": "Howard Carter upptäcker Tutankhamons grav",
+  "1925": "Edwin Hubble visar att Vintergatan är en av miljarder galaxer",
+  "1927": "Jazzsångaren — den första långa ljudfilmen",
+  "1928": "Penicillinet upptäcks",
+  "1929": "Börskraschen på Wall Street",
+  "1930": "Första fotbolls-VM i Uruguay",
+  "1933": "Franklin D. Roosevelt tillträder som USA:s president",
+  "1936": "Spanska inbördeskriget börjar",
+  "1937": "Snövit — den första långa tecknade filmen",
+  "1938": "Kristallnatten",
+  "1939": "Borta med vinden har premiär",
+  "1941": "Attacken mot Pearl Harbor",
+  "1942": "Asimov formulerar robotlagarna",
+  "1945": "Atombomben fälls över Hiroshima",
+  "1946": "ENIAC — den första elektroniska datorn",
+  "1947": "Transistorn uppfinns på Bell Labs",
+  "1948": "Staten Israel utropas",
+  "1949": "Mao utropar Folkrepubliken Kina",
+  "1950": "Turingtestet formuleras",
+  "1952": "Den första vätebomben provsprängs",
+  "1953": "DNA-strukturen upptäcks",
+  "1956": "Begreppet \"artificiell intelligens\" myntas",
+  "1957": "Sputnik 1 skjuts upp",
+  "1958": "Mikrochippet uppfinns",
+  "1959": "Kubanska revolutionen",
+  "1960": "P-pillret godkänns för försäljning",
+  "1961": "Gagarin blir den första människan i rymden",
+  "1962": "Kubakrisen",
+  "1966": "ELIZA — den första chatboten",
+  "1967": "Den första lyckade hjärttransplantationen",
+  "1968": "Black Power-hälsningen på OS i Mexico City",
+  "1969": "Månlandningen",
+  "1970": "Beatles upplöses",
+  "1971": "Intel lanserar mikroprocessorn",
+  "1972": "Gudfadern har premiär",
+  "1973": "Mobiltelefonen uppfinns",
+  "1974": "ABBA vinner Eurovision med \"Waterloo\"",
+  "1975": "Apollo–Sojuz-handslaget i rymden",
+  "1976": "Apple grundas",
+  "1977": "Star Wars har premiär",
+  "1978": "Space Invaders blir arkadhit",
+  "1979": "Islamiska revolutionen i Iran",
+  "1980": "Pac-Man erövrar arkadhallarna",
+  "1981": "Aids identifieras som sjukdom",
+  "1982": "E.T. cyklar förbi månen",
+  "1983": "TCP/IP kopplar samman datorerna till internet",
+  "1984": "Apple Macintosh lanseras",
+  "1985": "Super Mario Bros. släpps till NES",
+  "1986": "Tjernobylkatastrofen",
+  "1989": "Berlinmurens fall",
+  "1991": "World Wide Web öppnas för allmänheten",
+  "1993": "Bill Clinton tillträder som USA:s president",
+  "1994": "Sonys PlayStation lanseras",
+  "1995": "Windows 95 lanseras",
+  "1997": "Titanic har biopremiär",
+  "1998": "Google grundas",
+  "2000": "Internationella rymdstationen får sin första besättning",
+  "2001": "Wikipedia grundas",
+  "2003": "Människans arvsmassa är helt kartlagd",
+  "2004": "World of Warcraft öppnar online",
+  "2006": "Google Översätt lanseras",
+  "2007": "iPhone lanseras",
+  "2008": "Spotify lanseras",
+  "2009": "Avatar har biopremiär",
+  "2010": "Arabiska våren bryter ut",
+  "2011": "Minecraft släpps i fullversion",
+  "2012": "Higgspartikeln upptäcks vid CERN",
+  "2016": "AlphaGo besegrar Lee Sedol",
+  "2019": "Den första bilden av ett svart hål",
+  "2020": "Covid-19 förklaras vara en pandemi",
+  "2022": "ChatGPT lanseras",
+  "2023": "GPT-4 lanseras",
+  "2024": "Sommar-OS i Paris"
+};
+
+const EVENTS = LANG === "sv"
+  ? EVENTS_EN.map(e => [e[0], SV_TEXTS[e[0]] || e[1]])
+  : EVENTS_EN;
+
+const fmtYear = LANG === "sv"
+  ? (y => y < 0 ? Math.abs(y).toLocaleString("sv-SE") + " f.Kr" : (y < 1000 ? "år " + y : "" + y))
+  : (y => y < 0 ? Math.abs(y).toLocaleString("en-US") + " BC" : (y < 1000 ? "AD " + y : "" + y));
 const fmtYearLong = fmtYear;
 
 /* Soft difficulty guard: the two cards in a question should sit comfortably
@@ -1101,7 +1441,7 @@ function buildAxis(){
     add("axis-tick", y); add("axis-tick-lab", y).textContent = fmtYear(y);
   }
   add("goal-pin", hi);
-  add("goal-lab", hi).textContent = "GOAL · " + fmtYear(hi);
+  add("goal-lab", hi).textContent = T.goalLab + fmtYear(hi);
   const line = $("axisLine");
   line.style.animation = "none"; line.getBoundingClientRect(); line.style.animation = "";
 }
@@ -1256,7 +1596,7 @@ function ensureIntroDefs(){
     '<path d="M1.5,1.5 L8.5,5 L1.5,8.5" fill="none" stroke="#1c5a66" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>');
 }
 function showIntro(){
-  fbEl.innerHTML = '<span id="fbIntro">You are here!</span>' + posHTML();
+  fbEl.innerHTML = '<span id="fbIntro">' + T.here + '</span>' + posHTML();
   fbEl.className = "feedback show fwd";
   if (introPath){ introPath.remove(); introPath = null; }
   setTimeout(() => {
@@ -1368,9 +1708,9 @@ function renderDailyStats(){
   if (!played){ $("dstats").innerHTML = ""; return; }
   const perfect = Object.values(days).filter(d => d.h <= d.par).length;
   $("dstats").innerHTML =
-    '<div class="box"><div class="num">' + played + '</div><div class="lab">Played</div></div>' +
-    '<div class="box"><div class="num gold">' + getDayStreak() + '</div><div class="lab">Day streak</div></div>' +
-    '<div class="box"><div class="num">' + perfect + '</div><div class="lab">Perfect</div></div>';
+    '<div class="box"><div class="num">' + played + '</div><div class="lab">' + T.played + '</div></div>' +
+    '<div class="box"><div class="num gold">' + getDayStreak() + '</div><div class="lab">' + T.dayStreak + '</div></div>' +
+    '<div class="box"><div class="num">' + perfect + '</div><div class="lab">' + T.perfectLab + '</div></div>';
 }
 
 /* Analytics — GoatCounter custom events, with a queue for events that fire
@@ -1402,19 +1742,20 @@ function shareResult(){
   const streakD = getDayStreak();
   const textNoUrl = "\u23F3 Daily Time Travel #" + dayNum(dayOffset) + "\n" +
     fmtYear(S.start[0]) + " \u2192 " + fmtYear(S.goal[0]) + " \u00B7 " +
-    steps + (steps === 1 ? " hop" : " hops") + " (par " + optimal + ")\n" +
-    trail + (streakD > 1 ? "\nStreak: " + streakD + " days" : "");
-  const full = textNoUrl + "\n" + SITE_URL;
+    steps + " " + (steps === 1 ? T.hop : T.hops) + " (par " + optimal + ")\n" +
+    trail + (streakD > 1 ? T.streakLine + streakD + T.daysWord : "");
+  const shareUrl = SITE_URL + (LANG === "sv" ? "/sv" : "");
+  const full = textNoUrl + "\n" + shareUrl;
   if (navigator.share){
-    navigator.share({ title: "Daily Time Travel", text: textNoUrl, url: SITE_URL })
-      .then(() => trackEvent("tt_share_native", "TT shared (native)"))
+    navigator.share({ title: "Daily Time Travel", text: textNoUrl, url: shareUrl })
+      .then(() => trackEvent(EV + "share_native", "TT shared (native)"))
       .catch(err => { if (err && err.name === "AbortError") return; copyShare(full); });
   } else copyShare(full);
 }
 function copyShare(t){
-  trackEvent("tt_share_copy", "TT result copied");
-  navigator.clipboard.writeText(t).then(() => showToast("Copied — paste it anywhere!"))
-    .catch(() => showToast("Could not copy"));
+  trackEvent(EV + "share_copy", "TT result copied");
+  navigator.clipboard.writeText(t).then(() => showToast(T.copied))
+    .catch(() => showToast(T.copyFail));
 }
 
 let cdTimer = null;
@@ -1427,18 +1768,18 @@ function startCountdown(){
     const mid = new Date(now); mid.setHours(24, 0, 0, 0);
     const s = Math.max(0, Math.floor((mid - now) / 1000));
     if (s <= 0){
-      el.innerHTML = "<b>A new journey is ready!</b> Reload to play.";
+      el.innerHTML = T.ready;
       clearInterval(cdTimer); return;
     }
     const pad = x => String(x).padStart(2, "0");
-    el.innerHTML = "Next journey in <b>" + pad(Math.floor(s / 3600)) + ":" +
+    el.innerHTML = T.nextIn + " <b>" + pad(Math.floor(s / 3600)) + ":" +
       pad(Math.floor(s % 3600 / 60)) + ":" + pad(s % 60) + "</b>";
   }
   tick(); cdTimer = setInterval(tick, 1000);
 }
 
 function openFeedback(){
-  trackEvent("tt_feedback_opened", "TT feedback opened");
+  trackEvent(EV + "feedback_opened", "TT feedback opened");
   $("fbText").value = "";
   $("fbOverlay").classList.add("show");
   setTimeout(() => $("fbText").focus(), 250);
@@ -1452,18 +1793,18 @@ function sendFeedback(){
     headers: { "Content-Type": "application/json", "Accept": "application/json" },
     body: JSON.stringify({
       access_key: "0366d42b-23ad-49d6-b2c2-49659908e0c6",
-      subject: "Daily Time Travel feedback (day #" + dayNum(dayOffset) + ")",
+      subject: "Daily Time Travel feedback (day #" + dayNum(dayOffset) + (LANG === "sv" ? ", SV" : "") + ")",
       from_name: "Daily Time Travel",
       message: msg
     })
   }).then(r => {
     $("fbSend").disabled = false;
     $("fbOverlay").classList.remove("show");
-    showToast(r.ok ? "Thank you!" : "Could not send — try again later");
-    if (r.ok) trackEvent("tt_feedback_sent", "TT feedback sent");
+    showToast(r.ok ? T.thanks : T.sendFail);
+    if (r.ok) trackEvent(EV + "feedback_sent", "TT feedback sent");
   }).catch(() => {
     $("fbSend").disabled = false;
-    showToast("Could not send — try again later");
+    showToast(T.sendFail);
   });
 }
 
@@ -1477,10 +1818,10 @@ function newGame(offset, opts){
   curEvent = S.start;
   steps = 0; wrongs = 0; streak = 0; history = []; busy = false;
   $("steps").textContent = 0; $("wrongs").textContent = 0; $("streak").textContent = 0;
-  $("optimal").textContent = optimal + (optimal === 1 ? " hop" : " hops");
+  $("optimal").textContent = optimal + " " + (optimal === 1 ? T.hop : T.hops);
   setYearNow(S.pos);
-  $("dayLab").textContent = "Journey #" + dayNum(dayOffset) + " · " +
-    dateForOffset(dayOffset).toLocaleDateString("en-US", { month: "long", day: "numeric" });
+  $("dayLab").textContent = T.journeyWord + dayNum(dayOffset) + " · " +
+    dateForOffset(dayOffset).toLocaleDateString(T.locale, LANG === "sv" ? { day: "numeric", month: "long" } : { month: "long", day: "numeric" });
   $("jbStart").textContent = S.start[1] + " (" + fmtYear(S.start[0]) + ")";
   $("jbEnd").textContent = fmtYear(S.goal[0]);
   $("resultScreen").classList.remove("show");
@@ -1508,7 +1849,7 @@ function restoreFinished(saved){
   S.pos = S.goal[0]; cur = J.goal; curEvent = S.goal;
   setYearNow(S.pos);
   moveMe(false);
-  fbEl.innerHTML = "You've arrived!" + posHTML();
+  fbEl.innerHTML = T.arrived + posHTML();
   fbEl.className = "feedback show fwd";
   showResultPanel(true);
 }
@@ -1560,7 +1901,7 @@ function choose(ev){
   const oldPos = S.pos;
   const forward = ev[0] > oldPos;   // direction we travel
   const correct = ev === pair.a;    // pair.a is always the later event
-  if (!window._ttStep1Sent){ window._ttStep1Sent = true; trackEvent("tt_step1", "TT first hop"); }
+  if (!window._ttStep1Sent){ window._ttStep1Sent = true; trackEvent(EV + "step1", "TT first hop"); }
   const chosenSlot = slotEls.get(ev), otherSlot = slotEls.get(other);
   if (!correct){
     if (!wrongPicked.has(cur)) wrongPicked.set(cur, new Set());
@@ -1614,19 +1955,19 @@ function choose(ev){
     tickYear(oldPos, S.pos, 1150);          // siffran rullar samtidigt som symbolen åker
     if (S.pos >= S.goal[0]){
       // framme — ingen Nästa-knapp, gå direkt till slutskärmen efter ankomsten
-      fbEl.innerHTML = "You've arrived!" + posHTML();
+      fbEl.innerHTML = T.arrived + posHTML();
       fbEl.className = "feedback show fwd";
       busy = false;
       setTimeout(win, 2300);
     } else {
       const left = remainingOptimal();
-      const hopsWord = left === 1 ? "hop" : "hops";
+      const hopsWord = left === 1 ? T.hop : T.hops;
       if (!correct){
-        fbEl.innerHTML = (forward ? "Not quite!" : "Wrong \u2014 back in time!") +
-          " <b>" + left + "</b> " + hopsWord + " to go." + posHTML();
+        fbEl.innerHTML = (forward ? T.notQuite : T.wrongBack) +
+          " <b>" + left + "</b> " + hopsWord + " " + T.toGo + posHTML();
         fbEl.className = "feedback show back";
       } else {
-        fbEl.innerHTML = "Right! <b>" + left + "</b> " + hopsWord + " to go." + posHTML();
+        fbEl.innerHTML = T.right + " <b>" + left + "</b> " + hopsWord + " " + T.toGo + posHTML();
         fbEl.className = "feedback show fwd";
       }
       setTimeout(() => $("nextFab").classList.add("show"), 1300);
@@ -1656,9 +1997,9 @@ function win(){
       route: history.map(h => [h.year, h.text, h.correct ? 1 : 0])
     };
     saveStore(st);
-    trackEvent("tt_won", "TT journey won");
-    trackEvent("tt_result_" + steps, "TT result: " + steps + " hops");
-    if (steps <= optimal) trackEvent("tt_perfect", "TT perfect journey");
+    trackEvent(EV + "won", "TT journey won");
+    trackEvent(EV + "result_" + steps, "TT result: " + steps + " hops");
+    if (steps <= optimal) trackEvent(EV + "perfect", "TT perfect journey");
   }
   showResultPanel(false);
 }
@@ -1673,13 +2014,13 @@ function showResultPanel(restored){
   const over = steps - optimal;
   $("finalText").innerHTML =
     over <= 0
-      ? "<b>Perfect journey!</b> You couldn't have gotten there faster."
-      : "You were " + over + (over === 1 ? " hop" : " hops") + " over par" +
-        (wrongs ? " and took <b>" + wrongs + (wrongs === 1 ? " wrong turn" : " wrong turns") + "</b> back in time." : ".");
+      ? T.perfect
+      : T.youWere + over + " " + (over === 1 ? T.hop : T.hops) + T.overPar +
+        (wrongs ? T.andTook + wrongs + (LANG === "sv" ? "" : (wrongs === 1 ? T.wrongTurn : T.wrongTurns)) + T.backInTime : ".");
   // Same direction as the in-game axis: latest event on top, "journey begins"
   // at the bottom — hence the reversed route list.
   $("route").innerHTML =
-    ['<div class="row"><span class="y">' + fmtYear(S.start[0]) + '</span><span>' + S.start[1] + ' — journey begins</span></div>']
+    ['<div class="row"><span class="y">' + fmtYear(S.start[0]) + '</span><span>' + S.start[1] + T.begins + '</span></div>']
       .concat(history.map(h =>
         '<div class="row' + (h.correct ? "" : " back") + '"><span class="y">' + fmtYear(h.year) + '</span><span>' + h.text + '</span></div>'
       ))
@@ -1705,7 +2046,7 @@ function showResultPanel(restored){
 }
 
 $("btnNextDay").onclick = () => newGame(dayOffset + 1, { replay: true });
-$("btnReplay").onclick = () => { trackEvent("tt_replay", "TT play again"); newGame(dayOffset, { replay: true }); };
+$("btnReplay").onclick = () => { trackEvent(EV + "replay", "TT play again"); newGame(dayOffset, { replay: true }); };
 $("btnShare").onclick = shareResult;
 $("fbLink").onclick = e => { e.preventDefault(); openFeedback(); };
 $("fbSend").onclick = sendFeedback;
@@ -1723,6 +2064,37 @@ if (window.TT_TEST_MODE){
   tb.textContent = window.TT_PREVIEW_MODE ? "TOMORROW" : "TEST";
   document.body.appendChild(tb);
 }
+// Statisk UI-text på svenska + språkväljare (liten pill uppe till vänster)
+if (LANG === "sv"){
+  document.title = "Daily Time Travel — hoppa genom historien, en dag i taget";
+  document.querySelector(".jb-start .jb-label").textContent = "Från";
+  document.querySelector(".jb-end .jb-label").textContent = "Mål · år";
+  document.querySelector(".question").innerHTML = "Vilken händelse hände <b>senast</b>?";
+  const ms = document.querySelectorAll(".meta > span");
+  ms[0].innerHTML = 'Hopp: <b id="steps">0</b>';
+  ms[1].innerHTML = 'Fel: <b id="wrongs">0</b>';
+  ms[2].innerHTML = 'I rad: <b id="streak">0</b>';
+  ms[3].innerHTML = 'Par: <b id="optimal">–</b>';
+  $("nextFab").textContent = "Nästa →";
+  document.querySelector("#resultScreen h2").textContent = "Framme!";
+  const cl = document.querySelectorAll(".compare .box .lab");
+  cl[0].textContent = "Dina hopp"; cl[1].textContent = "Par";
+  $("btnShare").textContent = "Dela resultat";
+  $("btnReplay").textContent = "Spela igen";
+  $("btnNextDay").textContent = "Nästa dag →";
+  document.querySelector(".panel-foot a").textContent = "☕ Bjud på en kaffe";
+  document.querySelector("#fbOverlay .panel p").textContent = "Hittat en bugg? För lätt, för svårt? Jag läser allt.";
+  $("fbText").placeholder = "Skriv vad som helst …";
+  $("fbSend").textContent = "Skicka";
+  $("fbCancel").textContent = "Avbryt";
+}
+const langPill = document.createElement("a");
+langPill.className = "lang-pill";
+langPill.textContent = LANG === "sv" ? "English" : "Svenska";
+langPill.href = LANG === "sv" ? "/" : "/sv";
+langPill.onclick = () => { try { localStorage.setItem("ttv_lang", LANG === "sv" ? "en" : "sv"); } catch (e) {} };
+document.body.appendChild(langPill);
+
 makeEmbers();
 newGame(window.TT_PREVIEW_MODE ? 1 : 0);
 </script>

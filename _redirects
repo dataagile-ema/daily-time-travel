@@ -1,2 +1,5 @@
-/test      /index.html   200
-/tomorrow  /index.html   200
+/test        /index.html 200
+/tomorrow    /index.html 200
+/sv          /index.html 200
+/sv/test     /index.html 200
+/sv/tomorrow /index.html 200
