@@ -503,7 +503,7 @@ header h1{font-size:1.92rem}
   try {
     // spara språkval; skicka rot-besökare som valt svenska till /sv
     if (window.TT_LANG === "sv") localStorage.setItem("ttv_lang", "sv");
-    else if (window.location.pathname === "/" && localStorage.getItem("ttv_lang") === "sv")
+    else if (window.location.pathname === "/" && !/[?&]lang=en/i.test(window.location.search) && localStorage.getItem("ttv_lang") === "sv")
       window.location.replace("/sv");
   } catch (e) { /* localStorage otillgänglig — kör vidare på engelska */ }
   window.TT_TEST_MODE = /\/(test|tomorrow)(\/|$)/i.test(window.location.pathname);
