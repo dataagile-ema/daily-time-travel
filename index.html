@@ -12,13 +12,13 @@
 <meta property="og:url" content="https://daily-time-travel.netlify.app/">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#e9dec4">
+<meta name="theme-color" content="#FFF6E7">
 <link rel="icon" type="image/png" href="favicon-32.png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&family=Karla:wght@400;500;600;700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,700;12..96,800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 /* =========================================================
    TIDSRESAN v19 — VALPIL KORT → PLATS (f.d. v18_valpil)
@@ -514,6 +514,139 @@ header h1{font-size:1.92rem}
 }
 
 </style>
+<style id="skin-1c">
+/* ============================================================
+   1C · BOLD PLAY — additivt skal ovanpå originalet.
+   Retemar via :root och några riktade overrides. Rör ej logiken.
+   ============================================================ */
+:root{
+  --bg:#FFF6E7;
+  --paper:#FFF6E7;
+  --paper-2:#FBEFDA;
+  --ink:#1A1206;
+  --text:#1A1206;
+  --text-dim:#5C5140;
+  --text-faint:#8A7256;
+  --accent:#12B5A5;
+  --accent-dim:#0E8C7F;
+  --accent-glow:rgba(18,181,165,.16);
+  --accent-glow-strong:rgba(18,181,165,.34);
+  --gilt:#D99A18;
+  --gilt-glow:rgba(217,154,24,.5);
+  --seal:#FF5A36;
+  --spark:#D99A18;
+  --spark-glow:rgba(217,154,24,.5);
+  --correct:#2E9E63;
+  --correct-dim:#1F7A4B;
+  --correct-soft:rgba(46,158,99,.12);
+  --correct-glow:rgba(46,158,99,.32);
+  --wrong:#C33A1E;
+  --wrong-dim:#8F2A14;
+  --wrong-soft:rgba(195,58,30,.12);
+  --wrong-glow:rgba(195,58,30,.3);
+  --border:rgba(26,18,6,.28);
+  --border-hover:#1A1206;
+  --border-accent:#12B5A5;
+  --display:'Bricolage Grotesque',system-ui,sans-serif;
+  --ui:'Bricolage Grotesque',system-ui,sans-serif;
+  --mono:'Space Mono',ui-monospace,monospace;
+  --shadow:3px 3px 0 var(--ink);
+  --radius:16px;
+  --radius-lg:20px;
+  --tl-bottom:3vh;
+}
+@media (max-height:800px){:root{--tl-bottom:2vh}}
+
+/* Platt papper — inget brus, ingen vinjett/rutnät, inga glöd-embers */
+body{background:#FFF6E7}
+body::after{display:none}
+.ember{display:none}
+
+/* Rubrik */
+header h1{font-family:var(--display);font-style:normal;font-weight:800;letter-spacing:-.02em;font-size:2rem;color:var(--ink)}
+header h1::after{color:var(--seal);opacity:.9}
+.day-lab{color:var(--seal)}
+
+/* Tidsaxel — massiv bläcklinje + tydliga skalstreck */
+.axis-line{background:var(--ink);opacity:1;width:4px;border-radius:2px}
+.axis-tick{background:var(--ink);opacity:.5}
+.axis-tick-lab{color:var(--text-faint);font-weight:700}
+
+/* Mål — gul GOAL-chip + korallnod med bläckring */
+.goal-lab{font-family:var(--mono);font-style:normal;font-weight:700;color:var(--ink);
+  background:#FFC23C;border:2px solid var(--ink);border-radius:20px;
+  box-shadow:2px 2px 0 var(--ink);padding:3px 11px 4px}
+.goal-pin::before{background:var(--ink)}
+.goal-pin::after{background:#FF5A36;box-shadow:0 0 0 2px var(--ink);
+  animation:pinBob 1.8s ease-in-out infinite}
+
+/* Resenär-plakett — platt teal, bläckkant, hård skugga (glöd-läge kvar) */
+.me{background:#12B5A5;border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink);border-radius:14px}
+.me::before{border-right-color:var(--ink)}
+.me-year{color:#FFF6E7}
+.me-icon{fill:#FFF6E7}
+
+/* Kandidat-etiketter på axeln */
+.slot-lab{font-family:var(--mono);font-weight:700;color:var(--ink);
+  background:var(--paper);border:1.5px solid var(--ink);border-radius:8px;box-shadow:2px 2px 0 var(--ink)}
+
+/* Centrum-text + fråga */
+.feedback{font-family:var(--display);font-weight:800;font-size:1rem}
+.feedback .fb-pos{font-weight:600}
+.play-mid{margin-top:auto;margin-left:-120px;flex:none;justify-content:flex-end;gap:4px;padding:0 16px 4px;text-align:center}
+/* Tidsaxeln får maximal höjd: ta bort död bottenmarginal + stram header */
+.axis-col{margin:6px 0 0}
+header{margin-bottom:2px}
+.question{font-family:var(--display);font-style:normal;font-weight:800;color:var(--ink);font-size:1.32rem;line-height:1.1}
+.question b{color:var(--seal);font-style:normal}
+
+/* ====== SVARSKNAPPAR — fast rad, sida vid sida längst ner ====== */
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;flex:none}
+.card{
+  min-height:132px;border:2.5px solid var(--ink);border-radius:22px;background:var(--paper);
+  box-shadow:4px 5px 0 var(--ink);padding:18px 14px;gap:10px;
+  animation:cardEnter .5s ease;
+}
+/* Entré = kant-/skuggpuls (något mjukare än den som kändes för stark).
+   Opacity startar högt (.8) så knappen ALDRIG försvinner/ritas om — bara
+   kanten + skuggan pulserar när nya alternativ kommer in. Ljusstrimman vid
+   ankomst (.card.glint) är orörd. */
+@keyframes cardEnter{
+  0%{opacity:.8;border-color:var(--ink);box-shadow:4px 5px 0 var(--ink)}
+  45%{opacity:1;border-color:#FF7A45;box-shadow:5px 6px 0 var(--ink),0 0 12px rgba(255,90,54,.22)}
+  100%{opacity:1;border-color:var(--ink);box-shadow:4px 5px 0 var(--ink)}
+}
+.card:not(.revealed):hover{background:#FFFBEF;border-color:var(--ink);transform:translate(1px,1px);box-shadow:3px 4px 0 var(--ink)}
+.card:not(.revealed):active{transform:translate(2px,3px);box-shadow:1px 2px 0 var(--ink)}
+.card .event{font-family:var(--display);font-weight:800;font-size:1.12rem;color:var(--ink);line-height:1.18}
+.card.fwd{border-color:var(--ink);background:#E7F4EC}
+.card.back{border-color:var(--ink);background:#FBE7E0}
+.card.fwd .event,.card.back .event{color:var(--ink)}
+/* Dölj kortraden på slutskärmen (den ligger nu utanför spelbrädet) */
+#resultScreen.show ~ #cards{display:none}
+
+/* Beckon-pulsen (kant/skugga vid rundstart) och glint-strimman på det valda
+   kortet vid ankomst är ÅTERinförda enligt önskemål. */
+
+/* "Checking…"/Nästa flyttas ovanför kortraden */
+.next-fab{background:#FF5A36;color:#FFF6E7;border:2.5px solid var(--ink);
+  box-shadow:4px 5px 0 var(--ink);bottom:calc(env(safe-area-inset-bottom) + 200px)}
+.next-fab:active{transform:translate(-50%,0) translate(2px,3px);box-shadow:1px 2px 0 var(--ink)}
+.auto-next{bottom:calc(env(safe-area-inset-bottom) + 200px);color:var(--text-faint)}
+
+/* Slutskärm + knappar */
+.panel:not(.panel-inline){border:2.5px solid var(--ink);box-shadow:6px 8px 0 var(--ink);border-radius:20px}
+.panel h2{font-family:var(--display);font-style:normal;font-weight:800}
+.btn-primary{background:#FF5A36;color:#FFF6E7;border:2.5px solid var(--ink);box-shadow:4px 5px 0 var(--ink);border-radius:16px}
+.btn-primary:active{transform:translate(2px,3px);box-shadow:1px 2px 0 var(--ink)}
+.btn-ghost{border:2.5px solid var(--ink);color:var(--ink);border-radius:16px;box-shadow:2px 3px 0 var(--ink)}
+.btn-ghost:active{transform:translate(2px,3px);box-shadow:0 1px 0 var(--ink)}
+
+/* Språk-pill + toast */
+.lang-pill{font-family:var(--mono);color:var(--ink);background:var(--paper);border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink)}
+.lang-pill:hover{border-color:var(--ink);color:var(--ink)}
+.toast{background:var(--ink);color:var(--paper);border:2px solid var(--ink)}
+</style>
 <!-- Test mode (/test) and preview mode (/tomorrow): no analytics at all. -->
 <link rel="alternate" hreflang="en" href="https://daily-time-travel.netlify.app/">
 <link rel="alternate" hreflang="sv" href="https://daily-time-travel.netlify.app/sv">
@@ -592,7 +725,6 @@ header h1{font-size:1.92rem}
       <div class="play-mid">
         <div class="feedback" id="feedback"></div>
         <p class="question">Which happened <b>most recently</b>?</p>
-        <div class="cards" id="cards"></div>
       </div>
     </div>
   </div>
@@ -624,6 +756,8 @@ header h1{font-size:1.92rem}
     </div>
   </div>
 </section>
+
+  <div class="cards" id="cards"></div>
 </div>
 
 <button class="next-fab" id="nextFab">Next →</button>
@@ -1415,11 +1549,19 @@ function drawConnector(cardEl, slotEl, cls){
   const bw = boardEl.getBoundingClientRect();
   const c = cardEl.getBoundingClientRect(), s = slotEl.getBoundingClientRect();
   if (c.width === undefined || s.width === undefined) return null;
-  const x0 = c.left - bw.left, y0 = c.top + c.height / 2 - bw.top; // startar vid kortets vänsterkant
-  const x1 = s.left + s.width / 2 - bw.left, y1 = s.top + s.height / 2 - bw.top; // slutar mitt i platsen
-  const midX = (x0 + x1) / 2;
+  // Ny routing för botten-layouten: korten ligger nu längst ner, så linjen
+  // stiger ur kortets ÖVERKANT, sveper vänster i den tomma rännan under frågan
+  // och skjuter sedan UPP längs tidsaxeln till årsmarkören — den korsar aldrig
+  // frågan/texten (som sitter centrerad, ovanför rännan).
+  const x0 = c.left + c.width / 2 - bw.left, y0 = c.top - bw.top; // kortets överkant, mitten
+  const x1 = s.left + s.width / 2 - bw.left, y1 = s.top + s.height / 2 - bw.top; // årsmarkören
+  const gx = x1;                    // rännan ligger vid axeln
+  const corridorY = y0 - 10;        // sväng-höjd i gapet strax under brädet (under textlagret)
   const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  path.setAttribute("d", "M" + x0 + "," + y0 + " Q" + midX + "," + y0 + " " + x1 + "," + y1);
+  path.setAttribute("d",
+    "M" + x0 + "," + y0 +
+    " C" + x0 + "," + corridorY + " " + ((x0 + gx) / 2) + "," + corridorY + " " + gx + "," + corridorY +
+    " L" + x1 + "," + y1);
   path.setAttribute("class", "conn-path " + cls);
   connSvg.appendChild(path);
   if (cls === "dim"){ path.remove(); return null; }
@@ -1444,8 +1586,8 @@ function buildAxis(){
   visitedLabYs = [];
   const lo = J.events[0][0];
   const hi = S.goal[0];
-  // TEST: liten proportionell bottenmarginal (~10% av skalan), var max(4, 7%) som svällde för korta resor
-  const pad = (hi - lo) * 0.11;
+  // TEST: liten proportionell bottenmarginal (~5% av skalan) — tidslinjen når närmare knapparna
+  const pad = (hi - lo) * 0.05;
   // TEST: målet = skalans topp (inget toppspann) → goal högst upp i höjd med sidhuvudet
   AXIS_MIN = lo - pad; AXIS_MAX = hi;
   const span = AXIS_MAX - AXIS_MIN;
@@ -1616,9 +1758,12 @@ function showIntro(){
   if (introPath){ introPath.remove(); introPath = null; }
   setTimeout(() => {
     if (steps > 0 || busy) return;
-    // pilen utgår från HÄNDELSE-raden (inte "Du är här!"-texten):
-    // "Du är här!" syftar på händelsen, händelsen pekar på plaketten —
-    // och pilen slipper korsa händelsetexten
+    // Intro-pilen är borttagen (den korsade texten i den nya botten-layouten).
+    // Guidningen sker istället genom att svarskorten glimmar till i tur och ordning.
+    [...cardsEl.children].forEach((c, i) => {
+      setTimeout(() => c.classList.add("beckon"), 900 + i * 240);
+    });
+    return;
     const t = fbEl.querySelector(".fb-pos");
     if (!t) return;
     ensureIntroDefs();
