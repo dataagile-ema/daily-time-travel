@@ -98,7 +98,10 @@
   --shadow:3px 3px 0 rgba(36,28,16,.14);
   --radius:8px;
   --radius-lg:12px;
+  --tl-bottom:12vh;/* TEST: tidslinjens bottenmarginal = styr även Next-knappens höjd */
 }
+/* TEST: korta skärmar — mindre bottenmarginal så Next-knappen inte krockar med korten */
+@media (max-height:800px){:root{--tl-bottom:6vh}}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
 body{
@@ -192,7 +195,7 @@ header h1::after{
 .conn-path.fade-out{opacity:0!important;transition:opacity .6s ease}
 
 /* ---- Vertikal tidsaxel = tydlig expeditionsrail i papperskanten ---- */
-.axis-col{position:relative;width:112px;flex:none;margin:24px 0 12px;
+.axis-col{position:relative;width:112px;flex:none;margin:8px 0 var(--tl-bottom);/* TEST: topp 8px; nedskalad tidslinje + bottenmarginal (--tl-bottom) */
   background:linear-gradient(90deg,rgba(245,238,218,.75) 0%,rgba(245,238,218,.35) 70%,transparent 100%);
   border-radius:var(--radius) 0 0 var(--radius)}
 .axis-line{position:absolute;left:40px;top:0;bottom:0;width:2.5px;border-radius:2px;
@@ -268,7 +271,7 @@ header h1::after{
   transform:translateX(-115%);animation:cardShimmer 1.15s ease-in-out}
 @keyframes cardShimmer{to{transform:translateX(115%)}}
 /* v14_h — flytande Nästa-knapp (manuell fortsättning efter svar) */
-.next-fab{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));
+.next-fab{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom) + var(--tl-bottom));/* TEST: Next-knappens botten i linje med tidslinjens slut */
   transform:translate(-50%,18px);z-index:46;
   display:inline-flex;align-items:center;gap:8px;
   background:linear-gradient(180deg,#2a7d8c 0%,var(--accent) 55%,var(--accent-dim) 100%);color:#f5eeda;
@@ -278,6 +281,22 @@ header h1::after{
   opacity:0;pointer-events:none;transition:opacity .35s ease,transform .35s cubic-bezier(.2,.7,.3,1.2)}
 .next-fab.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
 .next-fab:active{transform:translate(-50%,2px)}
+/* v3: ingen manuell Nästa-knapp — en diskret “Checking…”-status visas en
+   kort stund efter svaret, sedan går spelet vidare av sig självt */
+.auto-next{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom) + var(--tl-bottom));
+  transform:translate(-50%,8px);z-index:46;display:inline-flex;align-items:center;gap:2px;
+  font-family:var(--mono);font-weight:700;font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--text-faint);opacity:0;pointer-events:none;
+  transition:opacity .3s ease,transform .3s ease}
+.auto-next.show{opacity:.85;transform:translate(-50%,0)}
+.auto-next .ell{margin-left:1px}
+.auto-next .ell i{font-style:normal;opacity:.2;animation:autoEll 1.2s infinite}
+.auto-next .ell i:nth-child(2){animation-delay:.2s}
+.auto-next .ell i:nth-child(3){animation-delay:.4s}
+@keyframes autoEll{0%,80%,100%{opacity:.2}40%{opacity:1}}
+.feedback .fb-ell i{font-style:normal;opacity:.2;animation:autoEll 1.2s infinite}
+.feedback .fb-ell i:nth-child(2){animation-delay:.2s}
+.feedback .fb-ell i:nth-child(3){animation-delay:.4s}
 
 /* Besökta punkter: bläckprickar längs rutten */
 .visited{position:absolute;left:41px;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;z-index:4;
@@ -327,7 +346,9 @@ header h1::after{
 
 /* ---- Spelkolumn ---- */
 .play-col{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-start;padding:2px 0 8px}
-.play-mid{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:12px;margin-top:10px}
+/* === TEST: bara inforutan (reseband + räknare) borttagen — resten som originalet === */
+.journey-banner,.meta{display:none}
+.play-mid{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:12px}/* v2: inforutan borta → 10vh-nedskjutningen slopad, kortblocket centreras vertikalt så tomrummet upptill försvinner */
 
 /* Centrum-texten bär alltid plakettens färg — den är spelarens röst.
    Statusrad överst, under den alltid positionen: händelse + år. */
@@ -606,6 +627,7 @@ header h1{font-size:1.92rem}
 </div>
 
 <button class="next-fab" id="nextFab">Next →</button>
+<div class="auto-next" id="autoNext" aria-hidden="true"><span id="autoNextLabel">Checking</span><span class="ell"><i>.</i><i>.</i><i>.</i></span></div>
 
 <div class="overlay" id="overlay" style="display:none"></div>
 
@@ -642,7 +664,8 @@ const T = LANG === "sv" ? {
   nextIn: "Nästa resa om", ready: "<b>En ny resa väntar!</b> Ladda om sidan.",
   streakLine: "\nSvit: ", daysWord: " dagar",
   copied: "Kopierat \u2014 klistra in var du vill!", copyFail: "Kunde inte kopiera",
-  thanks: "Tack!", sendFail: "Gick inte att skicka \u2014 försök igen senare"
+  thanks: "Tack!", sendFail: "Gick inte att skicka \u2014 försök igen senare",
+  checking: "Kollar"
 } : {
   here: "You are here!", arrived: "You've arrived!",
   right: "Right!", wrongBack: "Wrong \u2014 back in time!", notQuite: "Not quite!",
@@ -656,7 +679,8 @@ const T = LANG === "sv" ? {
   nextIn: "Next journey in", ready: "<b>A new journey is ready!</b> Reload to play.",
   streakLine: "\nStreak: ", daysWord: " days",
   copied: "Copied \u2014 paste it anywhere!", copyFail: "Could not copy",
-  thanks: "Thank you!", sendFail: "Could not send \u2014 try again later"
+  thanks: "Thank you!", sendFail: "Could not send \u2014 try again later",
+  checking: "Checking"
 };
 const PAR = 3;
 const THIS_YEAR = 2026;
@@ -1420,8 +1444,10 @@ function buildAxis(){
   visitedLabYs = [];
   const lo = J.events[0][0];
   const hi = S.goal[0];
-  const pad = Math.max(4, (hi - lo) * 0.07);
-  AXIS_MIN = lo - pad; AXIS_MAX = hi + pad;
+  // TEST: liten proportionell bottenmarginal (~10% av skalan), var max(4, 7%) som svällde för korta resor
+  const pad = (hi - lo) * 0.11;
+  // TEST: målet = skalans topp (inget toppspann) → goal högst upp i höjd med sidhuvudet
+  AXIS_MIN = lo - pad; AXIS_MAX = hi;
   const span = AXIS_MAX - AXIS_MIN;
   const step = [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000].find(st => span / st <= 9) || 5000;
   for (let y = Math.ceil(AXIS_MIN / step) * step; y <= AXIS_MAX; y += step){
@@ -1431,6 +1457,7 @@ function buildAxis(){
   add("goal-pin", hi);
   add("goal-lab", hi).textContent = T.goalLab + fmtYear(hi);
   const line = $("axisLine");
+  line.style.top = yPct(hi) + "%"; // TEST: linjen börjar vid målet — inget streck ovanför goal
   line.style.animation = "none"; line.getBoundingClientRect(); line.style.animation = "";
 }
 function add(cls, year, atPct){
@@ -1817,6 +1844,7 @@ function newGame(offset, opts){
   document.querySelectorAll(".confetti").forEach(c => c.remove());
   connSvg.innerHTML = "";
   var _nf = document.getElementById("nextFab"); if (_nf) _nf.classList.remove("show");
+  var _an = document.getElementById("autoNext"); if (_an) _an.classList.remove("show");
   buildAxis();
   moveMe(false);
   const saved = savedResultFor(dayOffset);
@@ -1890,6 +1918,9 @@ function choose(ev){
   if (busy) return; busy = true;
   if (introPath){ fadeConnector(introPath); introPath = null; }
   cardsEl.classList.add("locked");
+  // v4: visa “Checking…” i feedback-sektionen innan facit avslöjas
+  fbEl.innerHTML = T.checking + ' <span class="fb-ell"><i>.</i><i>.</i><i>.</i></span>';
+  fbEl.className = "feedback show";
   const other = ev === pair.a ? pair.b : pair.a;
   const oldPos = S.pos;
   const forward = ev[0] > oldPos;   // direction we travel
@@ -1912,6 +1943,8 @@ function choose(ev){
   history.push({ year: ev[0], text: ev[1], forward, correct });
   curEvent = ev;
 
+  // v4: fördröj facit tills "Checking…" har visats en stund
+  setTimeout(() => {
   let chosenCard = null, otherCard = null;
   [...cardsEl.children].forEach(c => {
     if (c._year === ev[0]){
@@ -1963,9 +1996,11 @@ function choose(ev){
         fbEl.innerHTML = T.right + " <b>" + left + "</b> " + hopsWord + " " + T.toGo + posHTML();
         fbEl.className = "feedback show fwd";
       }
-      setTimeout(() => $("nextFab").classList.add("show"), 1300);
+      // v3: visa “Checking…” en kort stund, gå sedan vidare automatiskt
+      setTimeout(advanceNext, 1500);
     }
   }, 480);
+  }, 1000);
 
   if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(forward ? 15 : [10, 40, 30]);
 }
@@ -2045,12 +2080,14 @@ $("fbLink").onclick = e => { e.preventDefault(); openFeedback(); };
 $("fbSend").onclick = sendFeedback;
 $("fbCancel").onclick = () => $("fbOverlay").classList.remove("show");
 $("fbOverlay").onclick = e => { if (e.target === $("fbOverlay")) $("fbOverlay").classList.remove("show"); };
-document.getElementById("nextFab").onclick = () => {
+function advanceNext(){
+  $("autoNext").classList.remove("show");
   $("nextFab").classList.remove("show");
   busy = false;
   if (S.pos >= S.goal[0]) win();
   else nextRound();
-};
+}
+document.getElementById("nextFab").onclick = advanceNext;
 if (window.TT_TEST_MODE){
   const tb = document.createElement("div");
   tb.className = "test-badge";
@@ -2069,6 +2106,7 @@ if (LANG === "sv"){
   ms[2].innerHTML = 'I rad: <b id="streak">0</b>';
   ms[3].innerHTML = 'Par: <b id="optimal">–</b>';
   $("nextFab").textContent = "Nästa →";
+  $("autoNextLabel").textContent = "Kollar";
   document.querySelector("#resultScreen h2").textContent = "Framme!";
   const cl = document.querySelectorAll(".compare .box .lab");
   cl[0].textContent = "Dina hopp"; cl[1].textContent = "Par";
