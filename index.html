@@ -500,6 +500,8 @@ header h1{font-size:1.92rem}
    och etiketterna får gott om plats utan att nudda korten */
 @media (min-width:700px) and (min-height:640px){
   #app{max-width:560px}
+  header{padding:0}
+  header h1{font-size:2rem}
   .axis-col{width:150px}
   /* bredare skärm: bandet ryms på en rad igen */
   .journey-banner{flex-direction:row;align-items:stretch;gap:10px}
@@ -563,7 +565,7 @@ body::after{display:none}
 .ember{display:none}
 
 /* Rubrik */
-header h1{font-family:var(--display);font-style:normal;font-weight:800;letter-spacing:-.02em;font-size:2rem;color:var(--ink)}
+header h1{font-family:var(--display);font-style:normal;font-weight:800;letter-spacing:-.02em;font-size:1.6rem;color:var(--ink)}
 header h1::after{color:var(--seal);opacity:.9}
 .day-lab{color:var(--seal)}
 
@@ -596,7 +598,7 @@ header h1::after{color:var(--seal);opacity:.9}
 .play-mid{margin-top:auto;flex:none;justify-content:flex-end;gap:4px;padding:0 8px 4px 60px;text-align:center}
 /* Tidsaxeln får maximal höjd: ta bort död bottenmarginal + stram header */
 .axis-col{margin:6px 0 0}
-header{margin-bottom:2px}
+header{margin:0 0 2px;padding:0 8px 0 88px}
 .question{font-family:var(--display);font-style:normal;font-weight:800;color:var(--ink);font-size:1.32rem;line-height:1.1}
 .question b{color:var(--seal);font-style:normal}
 
