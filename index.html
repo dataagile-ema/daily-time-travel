@@ -1435,45 +1435,61 @@ function buildJourney(evs, seed){
   return { seed: seed || 0, events: evs, start: S0, goal: G, pairs };
 }
 
-/* OPTION A — year-aware construction. Instead of stepping by consecutive
-   ARRAY INDEX (which collapses into a few years wherever the event list is
-   dense, e.g. the 1800s-2000s), we step by YEARS, scaled by era. A journey
-   therefore always spreads across enough time that "which era?" reasoning
-   stays a viable way to answer, exactly as intended. */
+/* SCHEMA C — seedad slumpvandring. Var och en av de 9 handelserna VALJS
+   slumpmassigt (ej "narmast mal"), men bara bland kandidater pa ratt avstand
+   fran den foregaende. Deterministiskt ur froet, haller avstand, och ger
+   manga fler distinkta resor per startpunkt an den deterministiska vandringen. */
+const WINDOW = 2.0;   // hur langt varje steg far hoppa, i multiplar av gStep
 function gStep(y){
   const ago = Math.max(1, THIS_YEAR - y);
-  return Math.min(120, Math.max(12, Math.round(ago * 0.08)));   // ~12yr modern -> up to 120yr ancient
+  return Math.min(120, Math.max(12, Math.round(ago * 0.08)));
 }
-function fwdStep(idx, g){
-  let j = idx + 2;                                   // keep a free slot for a 'between' event
-  while (j < EVENTS.length - 1 && EVENTS[j][0] - EVENTS[idx][0] < g) j++;
-  return Math.min(j, EVENTS.length - 1);
+function pickFwd(cur, rng, used){
+  const g = gStep(EVENTS[cur][0]), lo = EVENTS[cur][0] + g, hi = EVENTS[cur][0] + WINDOW * g;
+  let cand = [];
+  for (let k = cur + 1; k < EVENTS.length; k++)
+    if (!used.has(k) && EVENTS[k][0] >= lo && EVENTS[k][0] <= hi) cand.push(k);
+  if (!cand.length)                                   // gles epok: narmaste bortom lo
+    for (let k = cur + 1; k < EVENTS.length && !cand.length; k++)
+      if (!used.has(k) && EVENTS[k][0] >= lo) cand.push(k);
+  return cand.length ? cand[Math.floor(rndNext(rng) * cand.length)] : -1;
 }
-function backStep(idx, g){
-  let j = idx - 1;
-  while (j > 0 && EVENTS[idx][0] - EVENTS[j][0] < g) j--;
-  return Math.max(j, 0);
+function pickBack(cur, rng, used){
+  const g = gStep(EVENTS[cur][0]), hi = EVENTS[cur][0] - g, lo = EVENTS[cur][0] - WINDOW * g;
+  let cand = [];
+  for (let k = cur - 1; k >= 0; k--)
+    if (!used.has(k) && EVENTS[k][0] <= hi && EVENTS[k][0] >= lo) cand.push(k);
+  if (!cand.length)
+    for (let k = cur - 1; k >= 0 && !cand.length; k--)
+      if (!used.has(k) && EVENTS[k][0] <= hi) cand.push(k);
+  return cand.length ? cand[Math.floor(rndNext(rng) * cand.length)] : -1;
 }
-function betweenStep(lo, hi){                         // index in (lo,hi) closest to the year-midpoint
-  if (hi - lo < 2) return -1;
-  const mid = (EVENTS[lo][0] + EVENTS[hi][0]) / 2;
-  let best = lo + 1, bd = Infinity;
-  for (let k = lo + 1; k < hi; k++){
-    const d = Math.abs(EVENTS[k][0] - mid);
-    if (d < bd){ bd = d; best = k; }
-  }
+function pickBetween(a, b, rng, used){                // mellan-handelse >= minGap fran bada grannarna
+  const ga = minGap(EVENTS[a][0]), gb = minGap(EVENTS[b][0]);
+  let cand = [];
+  for (let k = a + 1; k < b; k++)
+    if (!used.has(k) && EVENTS[k][0] - EVENTS[a][0] >= ga && EVENTS[b][0] - EVENTS[k][0] >= gb) cand.push(k);
+  if (cand.length) return cand[Math.floor(rndNext(rng) * cand.length)];
+  if (b - a < 2) return -1;                           // fallback: mittpunkten (som live)
+  const mid = (EVENTS[a][0] + EVENTS[b][0]) / 2;
+  let best = a + 1, bd = Infinity;
+  for (let k = a + 1; k < b; k++){ const d = Math.abs(EVENTS[k][0] - mid); if (d < bd){ bd = d; best = k; } }
   return best;
 }
 function genJourney(seed){
   const rng = { a: seed }, N = EVENTS.length;
-  const i = 8 + Math.floor(rndNext(rng) * (N - 24));            // S0, room on both sides
-  const g = gStep(EVENTS[i][0]);
-  const c1 = fwdStep(i, g), c2 = fwdStep(c1, g), goal = fwdStep(c2, g);
-  const b1 = backStep(i, g), t1 = backStep(b1, g), t2 = backStep(t1, g);
-  const b2 = betweenStep(i, c1), b3 = betweenStep(c1, c2);
+  const i = 8 + Math.floor(rndNext(rng) * (N - 24));   // START — samma val som live
+  const used = new Set([i]);
+  const c1 = pickFwd(i, rng, used);    if (c1 < 0) return null; used.add(c1);
+  const c2 = pickFwd(c1, rng, used);   if (c2 < 0) return null; used.add(c2);
+  const goal = pickFwd(c2, rng, used); if (goal < 0) return null; used.add(goal);
+  const b1 = pickBack(i, rng, used);   if (b1 < 0) return null; used.add(b1);
+  const t1 = pickBack(b1, rng, used);  if (t1 < 0) return null; used.add(t1);
+  const t2 = pickBack(t1, rng, used);  if (t2 < 0) return null; used.add(t2);
+  const b2 = pickBetween(i, c1, rng, used);  if (b2 < 0) return null; used.add(b2);
+  const b3 = pickBetween(c1, c2, rng, used); if (b3 < 0) return null; used.add(b3);
   const idx = [t2, t1, b1, i, b2, c1, b3, c2, goal];
-  if (b2 < 0 || b3 < 0) return null;                            // no room for a between-event
-  for (let k = 1; k < 9; k++) if (idx[k] <= idx[k-1]) return null;  // must stay strictly increasing
+  for (let k = 1; k < 9; k++) if (idx[k] <= idx[k-1]) return null;   // maste vara strikt stigande
   return buildJourney(idx.map(k => EVENTS[k]), seed);
 }
 
