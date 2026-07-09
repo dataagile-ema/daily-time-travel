@@ -1435,16 +1435,46 @@ function buildJourney(evs, seed){
   return { seed: seed || 0, events: evs, start: S0, goal: G, pairs };
 }
 
+/* OPTION A — year-aware construction. Instead of stepping by consecutive
+   ARRAY INDEX (which collapses into a few years wherever the event list is
+   dense, e.g. the 1800s-2000s), we step by YEARS, scaled by era. A journey
+   therefore always spreads across enough time that "which era?" reasoning
+   stays a viable way to answer, exactly as intended. */
+function gStep(y){
+  const ago = Math.max(1, THIS_YEAR - y);
+  return Math.min(120, Math.max(12, Math.round(ago * 0.08)));   // ~12yr modern -> up to 120yr ancient
+}
+function fwdStep(idx, g){
+  let j = idx + 2;                                   // keep a free slot for a 'between' event
+  while (j < EVENTS.length - 1 && EVENTS[j][0] - EVENTS[idx][0] < g) j++;
+  return Math.min(j, EVENTS.length - 1);
+}
+function backStep(idx, g){
+  let j = idx - 1;
+  while (j > 0 && EVENTS[idx][0] - EVENTS[j][0] < g) j--;
+  return Math.max(j, 0);
+}
+function betweenStep(lo, hi){                         // index in (lo,hi) closest to the year-midpoint
+  if (hi - lo < 2) return -1;
+  const mid = (EVENTS[lo][0] + EVENTS[hi][0]) / 2;
+  let best = lo + 1, bd = Infinity;
+  for (let k = lo + 1; k < hi; k++){
+    const d = Math.abs(EVENTS[k][0] - mid);
+    if (d < bd){ bd = d; best = k; }
+  }
+  return best;
+}
 function genJourney(seed){
   const rng = { a: seed }, N = EVENTS.length;
-  const i  = 3 + Math.floor(rndNext(rng) * (N - 12));          // S0
-  const a  = i + 2 + Math.floor(rndNext(rng) * 2);             // C1
-  const b  = a + 2 + Math.floor(rndNext(rng) * 2);             // C2
-  const c  = b + 1 + Math.floor(rndNext(rng) * 2);             // GOAL
-  const b2 = i + 1 + Math.floor(rndNext(rng) * (a - i - 1));   // in (S0, C1)
-  const b3 = a + 1 + Math.floor(rndNext(rng) * (b - a - 1));   // in (C1, C2)
-  return buildJourney([EVENTS[i-3], EVENTS[i-2], EVENTS[i-1], EVENTS[i],
-                       EVENTS[b2], EVENTS[a], EVENTS[b3], EVENTS[b], EVENTS[c]], seed);
+  const i = 8 + Math.floor(rndNext(rng) * (N - 24));            // S0, room on both sides
+  const g = gStep(EVENTS[i][0]);
+  const c1 = fwdStep(i, g), c2 = fwdStep(c1, g), goal = fwdStep(c2, g);
+  const b1 = backStep(i, g), t1 = backStep(b1, g), t2 = backStep(t1, g);
+  const b2 = betweenStep(i, c1), b3 = betweenStep(c1, c2);
+  const idx = [t2, t1, b1, i, b2, c1, b3, c2, goal];
+  if (b2 < 0 || b3 < 0) return null;                            // no room for a between-event
+  for (let k = 1; k < 9; k++) if (idx[k] <= idx[k-1]) return null;  // must stay strictly increasing
+  return buildJourney(idx.map(k => EVENTS[k]), seed);
 }
 
 /* every question must be answerable on era feel alone: gap >= minGap */
@@ -1504,15 +1534,17 @@ function journeyForOffset(off, depth){
   // era variety: never yesterday's signature, and start >= 30 index
   // positions away from yesterday's start
   const prev = depth > 2 ? null : journeyForOffset(off - 1, depth + 1);
-  let fallback = null, j;
-  for (let salt = 0; salt < 60; salt++){
+  let fallback = null, last = null, j;
+  for (let salt = 0; salt < 80; salt++){
     j = genJourney(hashStr("timetravel-" + key + (salt ? "-" + salt : "")));
+    if (!j) continue;                       // year-aware gen may reject a seed -> try next
+    last = j;
     const okVar = !prev || (journeySig(j) !== journeySig(prev) &&
                   (startIdx(prev) < 0 || Math.abs(startIdx(j) - startIdx(prev)) >= 30));
     if (okVar && journeyQuality(j)) return j;
     if (okVar && fallback === null) fallback = j;
   }
-  return fallback || j;
+  return fallback || last;
 }
 
 /* =========================================================
