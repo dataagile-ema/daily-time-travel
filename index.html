@@ -660,6 +660,10 @@ header{margin:0 0 2px;padding:0 8px 0 88px}
   window.TT_LANG = (/^\/sv(\/|$)/i.test(window.location.pathname) ||
                     /[?&]lang=sv/i.test(window.location.search)) ? "sv" : "en";
   document.documentElement.lang = window.TT_LANG;
+  if (window.TT_LANG === "sv") {
+    var _cn = document.querySelector('link[rel="canonical"]');
+    if (_cn) _cn.href = "https://daily-time-travel.netlify.app/sv";
+  }
   try {
     // spara språkval; skicka rot-besökare som valt svenska till /sv
     if (window.TT_LANG === "sv") localStorage.setItem("ttv_lang", "sv");
@@ -685,7 +689,13 @@ header{margin:0 0 2px;padding:0 8px 0 88px}
     // Prefix pageview paths with /timetravel — the GoatCounter account is
     // shared with Daily Timeline, so traffic must be distinguishable.
     window.goatcounter = {
-      path: function(p) { return '/timetravel' + (p || '/'); },
+      // Use the real pathname: count.js otherwise reads <link rel="canonical">
+      // (hardcoded to "/"), which made ALL pageviews - including /sv - log as
+      // /timetravel/. That was the TT-SV measurement gap, fixed 2026-07-12.
+      path: function() {
+        var pp = window.location.pathname || '/';
+        return '/timetravel' + (pp === '/' ? '/' : pp);
+      },
       allow_frame: true
     };
     var _gc = document.createElement('script');
