@@ -487,16 +487,15 @@ header h1::after{
 .panel-foot .sep{margin:0 7px}
 /* Korspromo till våra andra spel — sticker-kort i TT:s pergamentstil, under knappraden.
    Mäts i båda ändar: tt_/tt_sv_-klickevent här + ?ref=timetravel på destinationens sidladdning. */
-.xpromo{margin-top:16px;display:flex;flex-direction:column;gap:8px}
-.xpromo-head{font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;color:var(--text-faint);text-align:center}
-.xpromo-card{display:flex;align-items:center;gap:10px;text-decoration:none;background:var(--paper-2);border:2px solid var(--ink);border-radius:14px;box-shadow:2px 3px 0 var(--ink);padding:9px 11px;color:var(--text);transition:transform .08s ease,box-shadow .08s ease}
-.xpromo-card:hover{background:var(--paper)}
-.xpromo-card:active{transform:translate(2px,3px);box-shadow:0 1px 0 var(--ink)}
-.xp-icon{flex:0 0 auto;width:30px;height:30px;border-radius:9px;background:var(--accent);color:var(--paper);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:600;font-size:1rem}
-.xp-text{flex:1 1 auto;display:flex;flex-direction:column;line-height:1.22;text-align:left;min-width:0}
-.xp-title{font-weight:700;font-size:.92rem}
-.xp-desc{font-size:.72rem;color:var(--text-dim)}
-.xp-cta{flex:0 0 auto;color:var(--accent);font-weight:700;font-size:.82rem;white-space:nowrap}
+.xpromo{margin-top:18px;display:flex;flex-direction:column;gap:10px}
+.xpromo-head{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-faint);text-align:center;margin-bottom:1px}
+.xpromo-card{display:flex;align-items:center;gap:12px;max-width:480px;width:100%;margin:0 auto;text-align:left;text-decoration:none;background:var(--accent-glow);border:1.5px solid var(--border-accent);border-radius:12px;padding:11px 14px;color:var(--text);transition:background .18s ease,border-color .18s ease}
+.xpromo-card:hover{background:var(--accent-glow-strong);border-color:var(--accent)}
+.xp-icon{flex:0 0 auto;width:42px;height:42px;border-radius:11px;background:var(--accent);color:var(--paper);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:600;font-size:1.5rem;line-height:1}
+.xp-text{flex:1 1 auto;display:flex;flex-direction:column;line-height:1.28;text-align:left;min-width:0}
+.xp-title{font-weight:700;font-size:.95rem;color:var(--ink)}
+.xp-desc{font-size:.75rem;color:var(--text-dim)}
+.xp-cta{flex:0 0 auto;color:var(--accent);font-weight:700;font-size:.85rem;white-space:nowrap}
 .toast{position:fixed;left:50%;bottom:calc(30px + env(safe-area-inset-bottom));transform:translate(-50%,20px);
   background:var(--ink);color:var(--paper);font-size:.9rem;font-weight:600;padding:11px 20px;border-radius:999px;
   opacity:0;pointer-events:none;transition:all .3s;z-index:60}
@@ -779,7 +778,6 @@ header{margin:0 0 2px;padding:0 8px 0 88px}
       <button class="btn-ghost" id="btnReplay">Play again</button>
       <button class="btn-ghost" id="btnNextDay" style="display:none">Next day →</button>
     </div>
-    <div class="countdown" id="countdown"></div>
     <div class="xpromo" id="xpromo">
       <div class="xpromo-head" id="xpromoHead">More from Klurium</div>
       <a class="xpromo-card" id="xpTimeline" href="https://daily-timeline.klurium.com/?ref=timetravel" target="_blank" rel="noopener">
@@ -793,6 +791,7 @@ header{margin:0 0 2px;padding:0 8px 0 88px}
         <span class="xp-cta">Play &rarr;</span>
       </a>
     </div>
+    <div class="countdown" id="countdown"></div>
     <div class="panel-foot">
       <a href="https://ko-fi.com/klurium" target="_blank" rel="noopener">☕ Buy me a coffee</a>
       <span class="sep">·</span>
