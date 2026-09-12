@@ -485,6 +485,18 @@ header h1::after{
 .panel-foot{margin-top:16px;padding-top:12px;border-top:1px dashed var(--border);font-size:.76rem;color:var(--text-faint)}
 .panel-foot a{color:var(--text-dim);text-decoration:none;border-bottom:1px dotted var(--text-faint)}
 .panel-foot .sep{margin:0 7px}
+/* Korspromo till våra andra spel — sticker-kort i TT:s pergamentstil, under knappraden.
+   Mäts i båda ändar: tt_/tt_sv_-klickevent här + ?ref=timetravel på destinationens sidladdning. */
+.xpromo{margin-top:16px;display:flex;flex-direction:column;gap:8px}
+.xpromo-head{font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;color:var(--text-faint);text-align:center}
+.xpromo-card{display:flex;align-items:center;gap:10px;text-decoration:none;background:var(--paper-2);border:2px solid var(--ink);border-radius:14px;box-shadow:2px 3px 0 var(--ink);padding:9px 11px;color:var(--text);transition:transform .08s ease,box-shadow .08s ease}
+.xpromo-card:hover{background:var(--paper)}
+.xpromo-card:active{transform:translate(2px,3px);box-shadow:0 1px 0 var(--ink)}
+.xp-icon{flex:0 0 auto;width:30px;height:30px;border-radius:9px;background:var(--accent);color:var(--paper);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:600;font-size:1rem}
+.xp-text{flex:1 1 auto;display:flex;flex-direction:column;line-height:1.22;text-align:left;min-width:0}
+.xp-title{font-weight:700;font-size:.92rem}
+.xp-desc{font-size:.72rem;color:var(--text-dim)}
+.xp-cta{flex:0 0 auto;color:var(--accent);font-weight:700;font-size:.82rem;white-space:nowrap}
 .toast{position:fixed;left:50%;bottom:calc(30px + env(safe-area-inset-bottom));transform:translate(-50%,20px);
   background:var(--ink);color:var(--paper);font-size:.9rem;font-weight:600;padding:11px 20px;border-radius:999px;
   opacity:0;pointer-events:none;transition:all .3s;z-index:60}
@@ -765,6 +777,19 @@ header{margin:0 0 2px;padding:0 8px 0 88px}
       <button class="btn-ghost" id="btnNextDay" style="display:none">Next day →</button>
     </div>
     <div class="countdown" id="countdown"></div>
+    <div class="xpromo" id="xpromo">
+      <div class="xpromo-head" id="xpromoHead">More from Klurium</div>
+      <a class="xpromo-card" id="xpTimeline" href="https://daily-timeline.klurium.com/?ref=timetravel" target="_blank" rel="noopener">
+        <span class="xp-icon">T</span>
+        <span class="xp-text"><span class="xp-title">Daily Timeline</span><span class="xp-desc">Order five events on one timeline. A fresh puzzle every day.</span></span>
+        <span class="xp-cta">Play &rarr;</span>
+      </a>
+      <a class="xpromo-card" id="xpWordlander" href="https://wordlander.klurium.com/?ref=timetravel" target="_blank" rel="noopener">
+        <span class="xp-icon">W</span>
+        <span class="xp-text"><span class="xp-title">Wordlander</span><span class="xp-desc">Chain letters, sink the tower. Our daily word game.</span></span>
+        <span class="xp-cta">Play &rarr;</span>
+      </a>
+    </div>
     <div class="panel-foot">
       <a href="https://ko-fi.com/klurium" target="_blank" rel="noopener">☕ Buy me a coffee</a>
       <span class="sep">·</span>
@@ -2286,6 +2311,8 @@ $("btnNextDay").onclick = () => newGame(dayOffset + 1, { replay: true });
 $("btnReplay").onclick = () => { trackEvent(EV + "replay", "TT play again"); newGame(dayOffset, { replay: true }); };
 $("btnShare").onclick = shareResult;
 $("fbLink").onclick = e => { e.preventDefault(); openFeedback(); };
+$("xpTimeline").addEventListener("click", () => trackEvent(EV + "timeline_click", "TT \u2192 Daily Timeline"));
+$("xpWordlander").addEventListener("click", () => trackEvent(EV + "wordlander_click", "TT \u2192 Wordlander"));
 $("fbSend").onclick = sendFeedback;
 $("fbCancel").onclick = () => $("fbOverlay").classList.remove("show");
 $("fbOverlay").onclick = e => { if (e.target === $("fbOverlay")) $("fbOverlay").classList.remove("show"); };
@@ -2322,6 +2349,10 @@ if (LANG === "sv"){
   $("btnShare").textContent = "Dela resultat";
   $("btnReplay").textContent = "Spela igen";
   $("btnNextDay").textContent = "Nästa dag →";
+  $("xpromoHead").textContent = "Fler spel från Klurium";
+  document.querySelector("#xpTimeline .xp-desc").textContent = "Placera fem händelser på tidslinjen. Ny utmaning varje dag.";
+  document.querySelector("#xpWordlander .xp-desc").textContent = "Kedja bokstäver, fäll tornet. Vårt dagliga ordspel.";
+  document.querySelectorAll(".xp-cta").forEach(e => e.textContent = "Spela \u2192");
   document.querySelector(".panel-foot a").textContent = "☕ Bjud på en kaffe";
   document.querySelector("#fbOverlay .panel p").textContent = "Hittat en bugg? För lätt, för svårt? Jag läser allt.";
   $("fbText").placeholder = "Skriv vad som helst …";
