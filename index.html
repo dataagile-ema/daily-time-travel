@@ -617,6 +617,8 @@ header h1::after{color:var(--seal);opacity:.9}
 header{margin:0 0 2px;padding:0 8px 0 88px}
 .question{font-family:var(--display);font-style:normal;font-weight:800;color:var(--ink);font-size:1.32rem;line-height:1.1}
 .question b{color:var(--seal);font-style:normal}
+.first-hint{margin:12px auto 0;max-width:440px;text-align:center;font-family:var(--ui);font-size:.82rem;line-height:1.5;color:var(--text-dim);background:var(--accent-glow);border:1px solid var(--border-accent);border-radius:12px;padding:8px 14px;animation:fadeIn .5s ease .3s both}
+.first-hint b{color:var(--accent-dim);font-weight:700}
 
 /* ====== SVARSKNAPPAR — fast rad, sida vid sida längst ner ====== */
 .cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;flex:none}
@@ -753,6 +755,7 @@ header{margin:0 0 2px;padding:0 8px 0 88px}
       <div class="play-mid">
         <div class="feedback" id="feedback"></div>
         <p class="question" id="question">Which happened <b>most recently</b>?</p>
+        <div class="first-hint" id="firstHint" hidden></div>
       </div>
     </div>
   </div>
@@ -1918,6 +1921,11 @@ function showIntro(){
    ========================================================= */
 const SITE_URL = "https://daily-time-travel.netlify.app";
 const STORAGE_KEY = "ttv_daily_v1";
+// Förstagångshint: visas tills spelaren gjort sitt första val (eller redan spelat en dag).
+try {
+  window.TT_FIRST_VISIT = !localStorage.getItem("ttv_hint_seen") &&
+    Object.keys((JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}).days || {}).length === 0;
+} catch (e){ window.TT_FIRST_VISIT = true; }
 const EPOCH = new Date(2026, 6, 6); // day #1 — month is 0-indexed
 
 let _memStore = {};
@@ -2078,6 +2086,15 @@ function newGame(offset, opts){
   $("question").innerHTML = (LANG === "sv"
     ? 'Vilken h\u00e4ndelse f\u00f6r dig n\u00e4rmare <b>' + fmtYear(S.goal[0]) + '</b>?'
     : 'Which event takes you closer to <b>' + fmtYear(S.goal[0]) + '</b>?');
+  var _fh = $("firstHint");
+  if (_fh){
+    if (window.TT_FIRST_VISIT){
+      _fh.innerHTML = (LANG === "sv"
+        ? 'Ny här? Välj händelsen som hände <b>senare i tiden</b> — den som tar dig framåt mot målet.'
+        : 'New here? Pick the event that happened <b>later in time</b> — the one that takes you forward toward the goal.');
+      _fh.hidden = false;
+    } else _fh.hidden = true;
+  }
   $("resultScreen").classList.remove("show");
   $("boardWrap").style.display = "";
   document.querySelectorAll(".confetti").forEach(c => c.remove());
@@ -2165,6 +2182,11 @@ function choose(ev){
   const forward = ev[0] > oldPos;   // direction we travel
   const correct = ev === pair.a;    // pair.a is always the later event
   if (!window._ttStep1Sent){ window._ttStep1Sent = true; trackEvent(EV + "step1", "TT first hop"); }
+  if (window.TT_FIRST_VISIT){
+    window.TT_FIRST_VISIT = false;
+    try { localStorage.setItem("ttv_hint_seen", "1"); } catch (e){}
+    var _fh2 = $("firstHint"); if (_fh2) _fh2.hidden = true;
+  }
   const chosenSlot = slotEls.get(ev), otherSlot = slotEls.get(other);
   if (!correct){
     if (!wrongPicked.has(cur)) wrongPicked.set(cur, new Set());
