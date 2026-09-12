@@ -752,7 +752,7 @@ header{margin:0 0 2px;padding:0 8px 0 88px}
       </div>
       <div class="play-mid">
         <div class="feedback" id="feedback"></div>
-        <p class="question">Which happened <b>most recently</b>?</p>
+        <p class="question" id="question">Which happened <b>most recently</b>?</p>
       </div>
     </div>
   </div>
@@ -2073,6 +2073,11 @@ function newGame(offset, opts){
     dateForOffset(dayOffset).toLocaleDateString(T.locale, LANG === "sv" ? { day: "numeric", month: "long" } : { month: "long", day: "numeric" });
   $("jbStart").textContent = S.start[1] + " (" + fmtYear(S.start[0]) + ")";
   $("jbEnd").textContent = fmtYear(S.goal[0]);
+  // Målinriktad fråga (som Daily Timeline) — knyter korten till målåret istället
+  // för det tvetydiga "most recently". Målhändelsen förblir dold; bara året visas.
+  $("question").innerHTML = (LANG === "sv"
+    ? 'Vilken h\u00e4ndelse f\u00f6r dig n\u00e4rmare <b>' + fmtYear(S.goal[0]) + '</b>?'
+    : 'Which event takes you closer to <b>' + fmtYear(S.goal[0]) + '</b>?');
   $("resultScreen").classList.remove("show");
   $("boardWrap").style.display = "";
   document.querySelectorAll(".confetti").forEach(c => c.remove());
@@ -2335,7 +2340,6 @@ if (LANG === "sv"){
   document.title = "Daily Time Travel — hoppa genom historien, en dag i taget";
   document.querySelector(".jb-start .jb-label").textContent = "Från";
   document.querySelector(".jb-end .jb-label").textContent = "Mål · år";
-  document.querySelector(".question").innerHTML = "Vilken händelse hände <b>senast</b>?";
   const ms = document.querySelectorAll(".meta > span");
   ms[0].innerHTML = 'Hopp: <b id="steps">0</b>';
   ms[1].innerHTML = 'Fel: <b id="wrongs">0</b>';
