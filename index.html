@@ -681,7 +681,7 @@ header{margin:0 0 2px;padding:0 8px 0 88px}
     // spara språkval; skicka rot-besökare som valt svenska till /sv
     if (window.TT_LANG === "sv") localStorage.setItem("ttv_lang", "sv");
     else if (window.location.pathname === "/" && !/[?&]lang=en/i.test(window.location.search) && localStorage.getItem("ttv_lang") === "sv")
-      window.location.replace("/sv");
+      window.location.replace("/sv" + window.location.search);
   } catch (e) { /* localStorage otillgänglig — kör vidare på engelska */ }
   window.TT_TEST_MODE = /\/(test|tomorrow)(\/|$)/i.test(window.location.pathname);
   window.TT_PREVIEW_MODE = /\/(tomorrow)(\/|$)/i.test(window.location.pathname);
@@ -2000,7 +2000,8 @@ function shareResult(){
     fmtYear(S.start[0]) + " \u2192 " + fmtYear(S.goal[0]) + " \u00B7 " +
     steps + " " + (steps === 1 ? T.hop : T.hops) + " (par " + optimal + ")\n" +
     trail + (streakD > 1 ? T.streakLine + streakD + T.daysWord : "");
-  const shareUrl = SITE_URL + (LANG === "sv" ? "/sv" : "");
+  // ?ref=share märker delade länkar så mottagarens besök syns som "share" i GoatCounter
+  const shareUrl = SITE_URL + (LANG === "sv" ? "/sv" : "/") + "?ref=share";
   const full = textNoUrl + "\n" + shareUrl;
   if (navigator.share){
     navigator.share({ title: "Daily Time Travel", text: textNoUrl, url: shareUrl })
@@ -2384,6 +2385,24 @@ if (LANG === "sv"){
   $("fbSend").textContent = "Skicka";
   $("fbCancel").textContent = "Avbryt";
 }
+// Landning via delad länk (?ref=share): event + ta bort parametern ur adressfältet,
+// så att bokmärken/hemskärm inte räknas som nya delningslandningar.
+try {
+  if (new URLSearchParams(location.search).get("ref") === "share") {
+    trackEvent(EV + "land_from_share", "TT landed from share");
+    // Vänta tills count.js har skickat sidvisningen (den läser ?ref ur adressen), sedan städa.
+    const _strip = () => {
+      const _q = new URLSearchParams(location.search); _q.delete("ref");
+      const _qs = _q.toString();
+      history.replaceState(null, "", location.pathname + (_qs ? "?" + _qs : "") + location.hash);
+    };
+    let _n = 0;
+    const _t = setInterval(() => {
+      const gcReady = window.goatcounter && typeof window.goatcounter.count === "function";
+      if (gcReady || ++_n > 50) { clearInterval(_t); setTimeout(_strip, gcReady ? 1500 : 0); }
+    }, 200);
+  }
+} catch (e) {}
 const langPill = document.createElement("a");
 langPill.className = "lang-pill";
 langPill.textContent = LANG === "sv" ? "English" : "Svenska";
