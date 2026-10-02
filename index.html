@@ -1988,6 +1988,55 @@ function trackEvent(name, title){
   if (window.goatcounter && typeof window.goatcounter.count === "function") _gcSend(p);
   else window._gcQueue.push(p);
 }
+/* ------------------------------------------------------------
+   KLURIUM RUN LOG (schema v1 — "Forslag - Enhetlig spelmätning.md" §4.2).
+   One document per journey, the same shape in every game, POSTed whole to
+   /api/run (a _redirects proxy to the run function on the Wordlander site,
+   so the call is same-origin) at the first hop, at the goal or when the page
+   is left mid-journey, and again after a share — same run id, the server
+   overwrites. score = hops, perfect = par. Test mode never logs; own devices
+   log with own:true. Runs in parallel with the GoatCounter events.
+   ------------------------------------------------------------ */
+var KL = {
+  src: (function () {
+    var q = location.search, ref = "", m = /[?&]ref=([\w-]+)/.exec(q), camp = m ? m[1] : "";
+    try { ref = document.referrer ? new URL(document.referrer).hostname : ""; } catch (e) {}
+    var pwa = /[?&]src=pwa/.test(q);
+    try { pwa = pwa || (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true; } catch (e) {}
+    return { ref: ref, camp: camp, pwa: !!pwa };
+  })(),
+  doc: null,
+  on: !window.TT_TEST_MODE && location.hostname === "daily-time-travel.netlify.app",
+  dev: function () {
+    try { var d = localStorage.getItem("kl_dev"); if (!d) { d = Math.random().toString(36).slice(2, 14); localStorage.setItem("kl_dev", d); } return d; }
+    catch (e) { return null; }
+  },
+  start: function (run, item, mode) {
+    this.doc = { v: 1, game: "timetravel", lang: window.TT_LANG === "sv" ? "sv" : "en", run: run, t0: new Date().toISOString(), dev: this.dev(),
+      mode: mode, item: item, outcome: null, score: 0, perfect: false, shared: null, src: this.src,
+      own: !!window.TT_OWN_DEVICE, x: {} };
+  },
+  /* outcome: "won" (every journey ends at the goal) or "abandoned"; score = hops so far */
+  finish: function (outcome) {
+    if (!this.doc) return;
+    this.doc.outcome = outcome;
+    this.doc.score = steps;
+    this.doc.perfect = outcome === "won" && steps <= optimal;
+    this.doc.x = { wrongs: wrongs, par: optimal };
+    this.send();
+  },
+  send: function () {
+    if (!this.doc || !this.on) return;
+    try {
+      fetch("/api/run", { method: "POST", headers: { "content-type": "application/json" },
+        keepalive: true, body: JSON.stringify(this.doc) }).catch(function () {});
+    } catch (e) { /* the log must never break the game */ }
+  }
+};
+function klDay(d){ return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); } /* ISO day, unlike dateKey() */
+function klAbandon(){ if (KL.doc && KL.doc.outcome !== "won") KL.finish("abandoned"); }
+addEventListener("pagehide", klAbandon);
+document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") klAbandon(); });
 
 function showToast(msg){
   const t = $("toast"); t.textContent = msg; t.classList.add("show");
@@ -2005,12 +2054,13 @@ function shareResult(){
   const full = textNoUrl + "\n" + shareUrl;
   if (navigator.share){
     navigator.share({ title: "Daily Time Travel", text: textNoUrl, url: shareUrl })
-      .then(() => trackEvent(EV + "share_native", "TT shared (native)"))
+      .then(() => { trackEvent(EV + "share_native", "TT shared (native)"); if (KL.doc) { KL.doc.shared = "native"; KL.send(); } })
       .catch(err => { if (err && err.name === "AbortError") return; copyShare(full); });
   } else copyShare(full);
 }
 function copyShare(t){
   trackEvent(EV + "share_copy", "TT result copied");
+  if (KL.doc) { KL.doc.shared = "copy"; KL.send(); }
   navigator.clipboard.writeText(t).then(() => showToast(T.copied))
     .catch(() => showToast(T.copyFail));
 }
@@ -2074,6 +2124,7 @@ function newGame(offset, opts){
   wrongPicked = new Map();
   curEvent = S.start;
   steps = 0; wrongs = 0; streak = 0; history = []; busy = false;
+  KL.doc = null; KL.runId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : null; /* Klurium run log: one id per journey */
   $("steps").textContent = 0; $("wrongs").textContent = 0; $("streak").textContent = 0;
   $("optimal").textContent = optimal + " " + (optimal === 1 ? T.hop : T.hops);
   setYearNow(S.pos);
@@ -2194,6 +2245,7 @@ function choose(ev){
   }
   cur = ev;
   S.pos = ev[0];
+  if (steps === 0 && KL.runId) { KL.start(KL.runId, klDay(dateForOffset(dayOffset)), dayOffset === 0 ? "daily" : "archive"); KL.send(); }
   steps++;
   if (correct){ streak++; } else { wrongs++; streak = 0; }
   $("steps").textContent = steps; $("wrongs").textContent = wrongs; $("streak").textContent = streak;
@@ -2279,6 +2331,7 @@ function tickYear(from, to, dur){
 }
 
 function win(){
+  KL.finish("won");
   if (dayOffset === 0 && !window.TT_PREVIEW_MODE && !savedResultFor(0)){
     const st = loadStore(); st.days = st.days || {};
     st.days[dateKey(dateForOffset(0))] = {

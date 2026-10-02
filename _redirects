@@ -3,3 +3,6 @@
 /sv          /index.html 200
 /sv/test     /index.html 200
 /sv/tomorrow /index.html 200
+# Klurium run log: same-origin proxy to the run function on the Wordlander site
+# (see Tidslinjen/"Forslag - Enhetlig spelmätning.md" §4.3). Netlify proxies server-side.
+/api/run     https://wordlander.klurium.com/.netlify/functions/run 200
