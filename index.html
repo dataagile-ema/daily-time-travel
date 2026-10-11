@@ -1999,14 +1999,17 @@ function trackEvent(name, title){
    ------------------------------------------------------------ */
 var KL = {
   src: (function () {
-    var q = location.search, ref = "", m = /[?&]ref=([\w-]+)/.exec(q), camp = m ? m[1] : "";
+    /* ?ref=<camp> is ours; ?utm_source=<camp> is what listdle uses (invisible before 2026-10-11) */
+    var q = location.search, ref = "", m = /[?&](?:ref|utm_source)=([\w-]+)/.exec(q), camp = m ? m[1] : "";
     try { ref = document.referrer ? new URL(document.referrer).hostname : ""; } catch (e) {}
     var pwa = /[?&]src=pwa/.test(q);
     try { pwa = pwa || (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true; } catch (e) {}
     return { ref: ref, camp: camp, pwa: !!pwa };
   })(),
   doc: null,
-  on: !window.TT_TEST_MODE && location.hostname === "daily-time-travel.netlify.app",
+  build: "2026-10-11", /* x.b in every document: tells stale clients apart in the log */
+  /* both production hosts; the klurium.com alias was missing until 2026-10-11 */
+  on: !window.TT_TEST_MODE && /^(daily-time-travel\.netlify\.app|dailytimetravel\.klurium\.com)$/.test(location.hostname),
   dev: function () {
     try { var d = localStorage.getItem("kl_dev"); if (!d) { d = Math.random().toString(36).slice(2, 14); localStorage.setItem("kl_dev", d); } return d; }
     catch (e) { return null; }
@@ -2014,7 +2017,7 @@ var KL = {
   start: function (run, item, mode) {
     this.doc = { v: 1, game: "timetravel", lang: window.TT_LANG === "sv" ? "sv" : "en", run: run, t0: new Date().toISOString(), dev: this.dev(),
       mode: mode, item: item, outcome: null, score: 0, perfect: false, shared: null, src: this.src,
-      own: !!window.TT_OWN_DEVICE, x: {} };
+      own: !!window.TT_OWN_DEVICE, x: { b: this.build } };
   },
   /* outcome: "won" (every journey ends at the goal) or "abandoned"; score = hops so far */
   finish: function (outcome) {
@@ -2022,7 +2025,7 @@ var KL = {
     this.doc.outcome = outcome;
     this.doc.score = steps;
     this.doc.perfect = outcome === "won" && steps <= optimal;
-    this.doc.x = { wrongs: wrongs, par: optimal };
+    this.doc.x = { wrongs: wrongs, par: optimal, b: this.build };
     this.send();
   },
   send: function () {
