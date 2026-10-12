@@ -2017,6 +2017,7 @@ var KL = {
   start: function (run, item, mode) {
     this.doc = { v: 1, game: "timetravel", lang: window.TT_LANG === "sv" ? "sv" : "en", run: run, t0: new Date().toISOString(), dev: this.dev(),
       mode: mode, item: item, outcome: null, score: 0, perfect: false, shared: null, src: this.src,
+      seen: (typeof klSeen === "function" ? klSeen() : null),
       own: !!window.TT_OWN_DEVICE, x: { b: this.build } };
   },
   /* outcome: "won" (every journey ends at the goal) or "abandoned"; score = hops so far */
@@ -2037,6 +2038,22 @@ var KL = {
   }
 };
 function klDay(d){ return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); } /* ISO day, unlike dateKey() */
+/* Retention for the run log (2026-10-12): a seen-record ttv_seen_v1 {f, l, p} (ISO local days):
+   f = first day seen, l = last day seen, p = the day before today the player was last seen.
+   Saved results (ttv_daily_v1, only daily wins) seed it for players older than the record. */
+function klSeen(){
+  if (window.TT_TEST_MODE) return null;
+  var today = klDay(new Date()), seen = null;
+  try { seen = JSON.parse(localStorage.getItem("ttv_seen_v1") || "null"); } catch (e) { seen = null; }
+  var days = [];
+  try { days = Object.keys((loadStore().days) || {}).map(function (k) { var p = k.split("-"); return p[0] + "-" + String(p[1]).padStart(2, "0") + "-" + String(p[2]).padStart(2, "0"); }).filter(function (d) { return d < today; }).sort(); } catch (e) {}
+  var f = seen && seen.f ? seen.f : (days[0] || null);
+  var p = seen ? (seen.l === today ? (seen.p || null) : seen.l) : (days.length ? days[days.length - 1] : null);
+  if (!p && days.length && days[days.length - 1] < today) p = days[days.length - 1];
+  if (f && days[0] && days[0] < f) f = days[0];
+  try { localStorage.setItem("ttv_seen_v1", JSON.stringify({ f: f || today, l: today, p: p })); } catch (e) {}
+  return { f: f || today, p: p };
+}
 function klAbandon(){ if (KL.doc && KL.doc.outcome !== "won") KL.finish("abandoned"); }
 addEventListener("pagehide", klAbandon);
 document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") klAbandon(); });
