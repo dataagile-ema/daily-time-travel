@@ -796,6 +796,8 @@ header{margin:0 0 2px;padding:0 8px 0 88px}
       <a href="https://ko-fi.com/klurium" target="_blank" rel="noopener">☕ Buy me a coffee</a>
       <span class="sep">·</span>
       <a href="#" id="fbLink">Feedback?</a>
+      <span class="sep">·</span>
+      <a href="#" id="dataLink">About your data</a>
     </div>
   </div>
 </section>
@@ -817,6 +819,16 @@ header{margin:0 0 2px;padding:0 8px 0 88px}
       <button class="btn-primary" id="fbSend">Send</button>
       <button class="btn-ghost" id="fbCancel">Cancel</button>
     </div>
+  </div>
+</div>
+
+<div class="overlay" id="dataOverlay">
+  <div class="panel" style="text-align:left">
+    <h2 style="font-size:1.4rem" id="dataTitle">About your data</h2>
+    <p style="margin-top:6px" id="dataP1">Your progress and streak are saved in this browser only.</p>
+    <p id="dataP2">Each round is logged on our server with a random device id, your result, country and browser type. No name, no email, no IP address.</p>
+    <p id="dataP3">We use it to see how the game is played. Nothing is sold or shared.</p>
+    <div class="actions" style="margin-top:4px"><button class="btn-ghost" id="dataClose">Close</button></div>
   </div>
 </div>
 
@@ -2007,7 +2019,7 @@ var KL = {
     return { ref: ref, camp: camp, pwa: !!pwa };
   })(),
   doc: null,
-  build: "2026-10-11", /* x.b in every document: tells stale clients apart in the log */
+  build: "2026-10-13", /* x.b in every document: tells stale clients apart in the log */
   /* both production hosts; the klurium.com alias was missing until 2026-10-11 */
   on: !window.TT_TEST_MODE && /^(daily-time-travel\.netlify\.app|dailytimetravel\.klurium\.com)$/.test(location.hostname),
   dev: function () {
@@ -2415,6 +2427,9 @@ $("xpTimeline").addEventListener("click", () => trackEvent(EV + "timeline_click"
 $("xpWordlander").addEventListener("click", () => trackEvent(EV + "wordlander_click", "TT \u2192 Wordlander"));
 $("fbSend").onclick = sendFeedback;
 $("fbCancel").onclick = () => $("fbOverlay").classList.remove("show");
+$("dataLink").onclick = e => { e.preventDefault(); $("dataOverlay").classList.add("show"); };
+$("dataClose").onclick = () => $("dataOverlay").classList.remove("show");
+$("dataOverlay").addEventListener("click", e => { if (e.target === $("dataOverlay")) $("dataOverlay").classList.remove("show"); });
 $("fbOverlay").onclick = e => { if (e.target === $("fbOverlay")) $("fbOverlay").classList.remove("show"); };
 function advanceNext(){
   $("autoNext").classList.remove("show");
@@ -2457,6 +2472,8 @@ if (LANG === "sv"){
   $("fbText").placeholder = "Skriv vad som helst …";
   $("fbSend").textContent = "Skicka";
   $("fbCancel").textContent = "Avbryt";
+  $("dataLink").textContent = "Om din data"; $("dataTitle").textContent = "Om din data"; $("dataClose").textContent = "Stäng";
+  $("dataP1").textContent = "Dina framsteg och din streak sparas bara i den här webbläsaren."; $("dataP2").textContent = "Varje omgång loggas på vår server med ett slumpat enhets-id, ditt resultat, land och webbläsartyp. Inget namn, ingen e-post, ingen IP-adress."; $("dataP3").textContent = "Vi använder det för att se hur spelet spelas. Inget säljs eller delas.";
 }
 // Landning via delad länk (?ref=share): event + ta bort parametern ur adressfältet,
 // så att bokmärken/hemskärm inte räknas som nya delningslandningar.
