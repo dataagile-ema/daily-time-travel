@@ -2105,7 +2105,7 @@ var KL = {
     return { ref: ref, camp: camp, pwa: !!pwa };
   })(),
   doc: null,
-  build: "2026-10-16", /* x.b in every document: tells stale clients apart in the log */
+  build: "2026-10-17", /* x.b in every document: tells stale clients apart in the log */
   /* both production hosts; the klurium.com alias was missing until 2026-10-11 */
   on: !window.TT_TEST_MODE && /^(daily-time-travel\.netlify\.app|dailytimetravel\.klurium\.com)$/.test(location.hostname),
   dev: function () {
@@ -2172,12 +2172,11 @@ function shareResult(){
   const full = textNoUrl + "\n" + shareUrl;
   if (navigator.share){
     navigator.share({ title: "Daily Time Travel", text: textNoUrl, url: shareUrl })
-      .then(() => { trackEvent(EV + "share_native", "TT shared (native)"); if (KL.doc) { KL.doc.shared = "native"; KL.send(); } })
+      .then(() => { if (KL.doc) { KL.doc.shared = "native"; KL.send(); } })
       .catch(err => { if (err && err.name === "AbortError") return; copyShare(full); });
   } else copyShare(full);
 }
 function copyShare(t){
-  trackEvent(EV + "share_copy", "TT result copied");
   if (KL.doc) { KL.doc.shared = "copy"; KL.send(); }
   navigator.clipboard.writeText(t).then(() => showToast(T.copied))
     .catch(() => showToast(T.copyFail));
@@ -2204,7 +2203,6 @@ function startCountdown(){
 }
 
 function openFeedback(){
-  trackEvent(EV + "feedback_opened", "TT feedback opened");
   $("fbText").value = "";
   $("fbOverlay").classList.add("show");
   setTimeout(() => $("fbText").focus(), 250);
@@ -2350,7 +2348,6 @@ function choose(ev){
   const oldPos = S.pos;
   const forward = ev[0] > oldPos;   // direction we travel
   const correct = ev === pair.a;    // pair.a is always the later event
-  if (!window._ttStep1Sent){ window._ttStep1Sent = true; trackEvent(EV + "step1", "TT first hop"); }
   if (window.TT_FIRST_VISIT){
     window.TT_FIRST_VISIT = false;
     try { localStorage.setItem("ttv_hint_seen", "1"); } catch (e){}
@@ -2457,9 +2454,6 @@ function win(){
       route: history.map(h => [h.year, h.text, h.correct ? 1 : 0])
     };
     saveStore(st);
-    trackEvent(EV + "won", "TT journey won");
-    trackEvent(EV + "result_" + steps, "TT result: " + steps + " hops");
-    if (steps <= optimal) trackEvent(EV + "perfect", "TT perfect journey");
   }
   showResultPanel(false);
 }
@@ -2506,7 +2500,7 @@ function showResultPanel(restored){
 }
 
 $("btnNextDay").onclick = () => newGame(dayOffset + 1, { replay: true });
-$("btnReplay").onclick = () => { trackEvent(EV + "replay", "TT play again"); newGame(dayOffset, { replay: true }); };
+$("btnReplay").onclick = () => { newGame(dayOffset, { replay: true }); };
 $("btnShare").onclick = shareResult;
 $("fbLink").onclick = e => { e.preventDefault(); openFeedback(); };
 $("xpTimeline").addEventListener("click", () => trackEvent(EV + "timeline_click", "TT \u2192 Daily Timeline"));
@@ -2565,7 +2559,6 @@ if (LANG === "sv"){
 // så att bokmärken/hemskärm inte räknas som nya delningslandningar.
 try {
   if (new URLSearchParams(location.search).get("ref") === "share") {
-    trackEvent(EV + "land_from_share", "TT landed from share");
     // Vänta tills count.js har skickat sidvisningen (den läser ?ref ur adressen), sedan städa.
     const _strip = () => {
       const _q = new URLSearchParams(location.search); _q.delete("ref");
