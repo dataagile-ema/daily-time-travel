@@ -3,6 +3,37 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<script>
+/* Domain migration (2026-10-18): daily-time-travel.netlify.app -> dailytimetravel.klurium.com.
+   Same hop as Timeline: on the old origin, pack localStorage (kl_dev, ttv_seen_v1, results)
+   into the URL hash and redirect, so the player keeps one device id and history across origins.
+   The real referrer host rides along as __from, otherwise every arrival looks like "netlify.app".
+   On the new origin: import the #m= payload once (never overwriting), then clean the URL. */
+(function(){
+  var OLD='daily-time-travel.netlify.app';
+  var NEW='https://dailytimetravel.klurium.com';
+  if(location.hostname===OLD){
+    var d={};
+    try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);d[k]=localStorage.getItem(k);}}catch(e){}
+    try{var rh=document.referrer?new URL(document.referrer).hostname:'';if(rh)d.__from=rh;}catch(e){}
+    var h='';
+    try{var s=JSON.stringify(d);if(s!=='{}'){h='#m='+btoa(unescape(encodeURIComponent(s)));}}catch(e){}
+    location.replace(NEW+location.pathname+location.search+h);
+  }else if(location.hash.slice(0,3)==='#m='){
+    try{
+      var obj=JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(3)))));
+      if(typeof obj.__from==='string')window.TT_FROM_HOST=obj.__from.slice(0,80); /* read by KL.src */
+      for(var k in obj){
+        if(k.slice(0,2)==='__')continue; /* transport fields, never stored */
+        if(Object.prototype.hasOwnProperty.call(obj,k)&&localStorage.getItem(k)===null){
+          try{localStorage.setItem(k,obj[k]);}catch(e){}
+        }
+      }
+    }catch(e){}
+    try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}
+  }
+})();
+</script>
 <title>Daily Time Travel — hop through history, one day at a time</title>
 <meta name="description" content="A free daily history game. Travel from one event to another by picking which happened most recently — reach the goal year in as few hops as you can.">
 <link rel="canonical" href="https://dailytimetravel.klurium.com/">
@@ -2100,6 +2131,7 @@ var KL = {
     /* ?ref=<camp> is ours; ?utm_source=<camp> is what listdle uses (invisible before 2026-10-11) */
     var q = location.search, ref = "", m = /[?&](?:ref|utm_source)=([\w-]+)/.exec(q), camp = m ? m[1] : "";
     try { ref = document.referrer ? new URL(document.referrer).hostname : ""; } catch (e) {}
+    if (ref === "daily-time-travel.netlify.app" && window.TT_FROM_HOST) ref = window.TT_FROM_HOST;
     var pwa = /[?&]src=pwa/.test(q);
     try { pwa = pwa || (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true; } catch (e) {}
     return { ref: ref, camp: camp, pwa: !!pwa };
