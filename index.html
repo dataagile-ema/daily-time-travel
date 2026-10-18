@@ -5,15 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Daily Time Travel — hop through history, one day at a time</title>
 <meta name="description" content="A free daily history game. Travel from one event to another by picking which happened most recently — reach the goal year in as few hops as you can.">
-<link rel="canonical" href="https://daily-time-travel.netlify.app/">
+<link rel="canonical" href="https://dailytimetravel.klurium.com/">
 <meta property="og:title" content="Daily Time Travel">
 <meta property="og:description" content="Hop through history! Pick which event happened most recently and reach the goal year in as few hops as you can. A new journey every day.">
-<meta property="og:image" content="https://daily-time-travel.netlify.app/share-image-og.png">
+<meta property="og:image" content="https://dailytimetravel.klurium.com/share-image-og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Daily Time Travel — hop through history to reach the goal year">
-<meta name="twitter:image" content="https://daily-time-travel.netlify.app/share-image-og.png">
-<meta property="og:url" content="https://daily-time-travel.netlify.app/">
+<meta name="twitter:image" content="https://dailytimetravel.klurium.com/share-image-og.png">
+<meta property="og:url" content="https://dailytimetravel.klurium.com/">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#FFF6E7">
@@ -667,15 +667,15 @@ header{margin:0 0 2px;padding:0 8px 0 88px}
 .toast{background:var(--ink);color:var(--paper);border:2px solid var(--ink)}
 </style>
 <!-- Test mode (/test) and preview mode (/tomorrow): no analytics at all. -->
-<link rel="alternate" hreflang="en" href="https://daily-time-travel.netlify.app/">
-<link rel="alternate" hreflang="sv" href="https://daily-time-travel.netlify.app/sv">
+<link rel="alternate" hreflang="en" href="https://dailytimetravel.klurium.com/">
+<link rel="alternate" hreflang="sv" href="https://dailytimetravel.klurium.com/sv">
 <script>
   window.TT_LANG = (/^\/sv(\/|$)/i.test(window.location.pathname) ||
                     /[?&]lang=sv/i.test(window.location.search)) ? "sv" : "en";
   document.documentElement.lang = window.TT_LANG;
   if (window.TT_LANG === "sv") {
     var _cn = document.querySelector('link[rel="canonical"]');
-    if (_cn) _cn.href = "https://daily-time-travel.netlify.app/sv";
+    if (_cn) _cn.href = "https://dailytimetravel.klurium.com/sv";
   }
   try {
     // spara språkval; skicka rot-besökare som valt svenska till /sv
@@ -2010,7 +2010,7 @@ function showIntro(){
    DAILY-GAME LAYER — persistence, streak, share, countdown,
    feedback, analytics. New for Daily Time Travel.
    ========================================================= */
-const SITE_URL = "https://daily-time-travel.netlify.app";
+const SITE_URL = "https://dailytimetravel.klurium.com";
 const STORAGE_KEY = "ttv_daily_v1";
 // Förstagångshint: visas tills spelaren gjort sitt första val (eller redan spelat en dag).
 try {
@@ -2105,7 +2105,7 @@ var KL = {
     return { ref: ref, camp: camp, pwa: !!pwa };
   })(),
   doc: null,
-  build: "2026-10-17", /* x.b in every document: tells stale clients apart in the log */
+  build: "2026-10-18", /* x.b in every document: tells stale clients apart in the log */
   /* both production hosts; the klurium.com alias was missing until 2026-10-11 */
   on: !window.TT_TEST_MODE && /^(daily-time-travel\.netlify\.app|dailytimetravel\.klurium\.com)$/.test(location.hostname),
   dev: function () {
