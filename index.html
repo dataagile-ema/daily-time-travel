@@ -516,6 +516,8 @@ header h1::after{
 .panel-foot{margin-top:16px;padding-top:12px;border-top:1px dashed var(--border);font-size:.76rem;color:var(--text-faint)}
 .panel-foot a{color:var(--text-dim);text-decoration:none;border-bottom:1px dotted var(--text-faint)}
 .panel-foot .sep{margin:0 7px}
+.listdle-badge{margin-top:12px}
+.listdle-badge img{display:inline-block;vertical-align:middle}
 /* Korspromo till våra andra spel — sticker-kort i TT:s pergamentstil, under knappraden.
    Mäts i båda ändar: tt_/tt_sv_-klickevent här + ?ref=timetravel på destinationens sidladdning. */
 .xpromo{margin-top:18px;display:flex;flex-direction:column;gap:10px}
@@ -829,6 +831,9 @@ header{margin:0 0 2px;padding:0 8px 0 88px}
       <a href="#" id="fbLink">Feedback?</a>
       <span class="sep">·</span>
       <a href="#" id="dataLink">About your data</a>
+    </div>
+    <div class="listdle-badge" id="listdleBadge">
+      <a href="https://listdle.com/games/daily-time-travel" target="_blank" rel="noopener"><img src="https://drr6cuahz63r9.cloudfront.net/prod/badge/daily-time-travel.svg?style=rate&amp;theme=light" alt="Rate Daily Time Travel on Listdle" width="221" height="45" loading="lazy"></a>
     </div>
   </div>
 </section>
@@ -2109,7 +2114,7 @@ function _gcSend(p){ try { window.goatcounter.count(p); } catch (e){} }
    run log (exact, no session dedup, no ad-block loss). GoatCounter keeps pageviews plus
    the few events the log cannot see — outbound clicks and the feedback receipt. Every
    other trackEvent call is filtered out here rather than deleted at ~50 call sites. */
-const GC_EVENTS_KEPT = /^tt_(sv_)?(timeline_click|wordlander_click|feedback_sent)$/;
+const GC_EVENTS_KEPT = /^tt_(sv_)?(timeline_click|wordlander_click|listdle_click|feedback_sent)$/;
 function trackEvent(name, title){
   if (!GC_EVENTS_KEPT.test(name)) return;
   if (window.TT_TEST_MODE || window.TT_OWN_DEVICE) return;
@@ -2137,7 +2142,7 @@ var KL = {
     return { ref: ref, camp: camp, pwa: !!pwa };
   })(),
   doc: null,
-  build: "2026-10-18", /* x.b in every document: tells stale clients apart in the log */
+  build: "2026-10-19", /* x.b in every document: tells stale clients apart in the log */
   /* both production hosts; the klurium.com alias was missing until 2026-10-11 */
   on: !window.TT_TEST_MODE && /^(daily-time-travel\.netlify\.app|dailytimetravel\.klurium\.com)$/.test(location.hostname),
   dev: function () {
@@ -2536,6 +2541,7 @@ $("btnReplay").onclick = () => { newGame(dayOffset, { replay: true }); };
 $("btnShare").onclick = shareResult;
 $("fbLink").onclick = e => { e.preventDefault(); openFeedback(); };
 $("xpTimeline").addEventListener("click", () => trackEvent(EV + "timeline_click", "TT \u2192 Daily Timeline"));
+$("listdleBadge").addEventListener("click", () => trackEvent(EV + "listdle_click", "TT \u2192 Listdle"));
 $("xpWordlander").addEventListener("click", () => trackEvent(EV + "wordlander_click", "TT \u2192 Wordlander"));
 $("fbSend").onclick = sendFeedback;
 $("fbCancel").onclick = () => $("fbOverlay").classList.remove("show");
@@ -2559,6 +2565,7 @@ if (window.TT_TEST_MODE){
 }
 // Statisk UI-text på svenska + språkväljare (liten pill uppe till vänster)
 if (LANG === "sv"){
+  $("listdleBadge").style.display = "none";   // Listdle listar bara den engelska versionen
   document.title = "Daily Time Travel — hoppa genom historien, en dag i taget";
   document.querySelector(".jb-start .jb-label").textContent = "Från";
   document.querySelector(".jb-end .jb-label").textContent = "Mål · år";
