@@ -36,6 +36,7 @@
 </script>
 <title>Daily Time Travel — hop through history, one day at a time</title>
 <meta name="description" content="A free daily history game. Travel from one event to another by picking which happened most recently — reach the goal year in as few hops as you can.">
+<meta name="listdle-verification" content="fa976f46-9daa-4cbb-8149-4c8e4a1eb1a3">
 <link rel="canonical" href="https://dailytimetravel.klurium.com/">
 <meta property="og:title" content="Daily Time Travel">
 <meta property="og:description" content="Hop through history! Pick which event happened most recently and reach the goal year in as few hops as you can. A new journey every day.">
@@ -2142,7 +2143,7 @@ var KL = {
     return { ref: ref, camp: camp, pwa: !!pwa };
   })(),
   doc: null,
-  build: "2026-10-19", /* x.b in every document: tells stale clients apart in the log */
+  build: "2026-10-20", /* x.b in every document: tells stale clients apart in the log */
   /* both production hosts; the klurium.com alias was missing until 2026-10-11 */
   on: !window.TT_TEST_MODE && /^(daily-time-travel\.netlify\.app|dailytimetravel\.klurium\.com)$/.test(location.hostname),
   dev: function () {
