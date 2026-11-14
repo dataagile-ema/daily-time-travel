@@ -49,7 +49,8 @@
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#FFF6E7">
-<link rel="icon" type="image/png" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2178,7 +2179,7 @@ var KL = {
     return { ref: ref, camp: camp, pwa: !!pwa };
   })(),
   doc: null,
-  build: "2026-10-20", /* x.b in every document: tells stale clients apart in the log */
+  build: "2026-11-14", /* x.b in every document: tells stale clients apart in the log */
   /* both production hosts; the klurium.com alias was missing until 2026-10-11 */
   on: !window.TT_TEST_MODE && /^(daily-time-travel\.netlify\.app|dailytimetravel\.klurium\.com)$/.test(location.hostname),
   dev: function () {
